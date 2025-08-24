@@ -1,5 +1,5 @@
 """
-Job scraping service with both free and paid options
+Enhanced Job scraping service with multiple strategies and fallback mechanisms
 """
 
 import requests
@@ -15,15 +15,17 @@ import re
 from typing import Dict, Optional, Tuple
 from django.conf import settings
 import logging
+from .enhanced_scraping_service import EnhancedJobScrapingService
 
 logger = logging.getLogger(__name__)
 
 
 class JobScrapingService:
-    """Service for scraping job postings from various websites"""
+    """Enhanced service for scraping job postings from various websites"""
     
     def __init__(self, use_paid_apis: bool = False):
         self.use_paid_apis = use_paid_apis
+        self.enhanced_scraper = EnhancedJobScrapingService()
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -31,17 +33,69 @@ class JobScrapingService:
     
     def scrape_job(self, url: str) -> Tuple[Dict, str]:
         """
-        Main method to scrape job posting from URL
+        Main method to scrape job posting from URL using enhanced multi-strategy approach
         Returns: (job_data_dict, method_used)
         """
+        logger.info(f"Starting enhanced job scraping for URL: {url}")
+        
+        # First try the enhanced scraper with all its strategies
+        try:
+            job_data, method = self.enhanced_scraper.scrape_job(url)
+            if self._validate_job_data(job_data):
+                logger.info(f"Successfully scraped job data using enhanced scraper ({method})")
+                return job_data, f"enhanced_{method}"
+            else:
+                logger.warning("Enhanced scraper returned incomplete data, trying fallback strategies")
+        except Exception as e:
+            logger.error(f"Enhanced scraper failed: {str(e)}, trying fallback strategies")
+        
+        # Fallback to original strategies if enhanced scraper fails
         try:
             if self.use_paid_apis:
-                return self._scrape_with_paid_apis(url)
+                job_data, method = self._scrape_with_paid_apis(url)
+                if self._validate_job_data(job_data):
+                    return job_data, method
             else:
-                return self._scrape_with_free_tools(url)
+                job_data, method = self._scrape_with_free_tools(url)
+                if self._validate_job_data(job_data):
+                    return job_data, method
         except Exception as e:
-            logger.error(f"Error scraping job from {url}: {str(e)}")
-            return {}, f"error: {str(e)}"
+            logger.error(f"Fallback scraping failed: {str(e)}")
+        
+        # Final fallback - return minimal data
+        logger.warning("All scraping strategies failed, returning minimal fallback data")
+        return self._get_minimal_fallback_data(url), "minimal_fallback"
+    
+    def _validate_job_data(self, job_data: Dict) -> bool:
+        """Validate that we have meaningful job data"""
+        if not job_data:
+            return False
+        
+        # Check for meaningful title and company
+        title = job_data.get('title', '').strip()
+        company = job_data.get('company', '').strip()
+        
+        # Must have either a meaningful title or company name
+        has_title = title and len(title) > 5 and 'not available' not in title.lower() and 'extraction failed' not in title.lower()
+        has_company = company and len(company) > 2 and 'not available' not in company.lower() and 'unknown' not in company.lower()
+        
+        return has_title or has_company
+    
+    def _get_minimal_fallback_data(self, url: str) -> Dict:
+        """Create minimal fallback data when all scraping fails"""
+        return {
+            'title': 'Manual Review Required',
+            'company': 'Company Not Extracted',
+            'description': f'Automatic extraction failed for URL: {url}. Please review manually and extract job details.',
+            'location': 'Location Not Available',
+            'requirements': 'Requirements extraction failed',
+            'responsibilities': 'Responsibilities extraction failed',
+            'salary_range': '',
+            'employment_type': '',
+            'url': url,
+            'extraction_status': 'failed',
+            'manual_review_required': True
+        }
     
     def _scrape_with_paid_apis(self, url: str) -> Tuple[Dict, str]:
         """Scrape using paid APIs like ScrapingBee or Diffbot"""

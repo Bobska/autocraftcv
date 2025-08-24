@@ -22,6 +22,12 @@ urlpatterns = [
     path('manual-entry/help/', manual_views.manual_entry_help, name='manual_entry_help'),
     path('retry-scraping/', manual_views.retry_scraping, name='retry_scraping'),
     
+    # Enhanced Manual Entry - LinkedIn Login + Manual Entry Enhancement
+    path('enhanced-manual-entry/', manual_views.enhanced_manual_job_entry, name='enhanced_manual_entry'),
+    path('smart-manual-entry/', manual_views.smart_manual_entry, name='smart_manual_entry'),
+    path('linkedin-login-setup/', manual_views.linkedin_login_setup, name='linkedin_login_setup'),
+    path('enhanced-scraping-workflow/', manual_views.enhanced_scraping_workflow, name='enhanced_scraping_workflow'),
+    
     # Profile processing
     path('upload-resume/', views.upload_resume, name='upload_resume'),
     path('profile/<uuid:profile_id>/review/', views.profile_review, name='profile_review'),

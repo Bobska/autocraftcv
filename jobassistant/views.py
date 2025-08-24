@@ -22,6 +22,7 @@ from .services.scraping_service import JobScrapingService
 from .services.parsing_service import ResumeParsingService
 from .services.content_generation_service import ContentGenerationService
 from .services.document_generation_service import DocumentGenerationService
+from .safe_data_utils import get_safe_job_data_for_save, clean_job_data
 from .utils import (
     ProgressTracker, 
     JobScrapingProgress, 
@@ -50,15 +51,16 @@ class HomeView(TemplateView):
 
 
 def scrape_job_url(request):
-    """Handle job URL scraping with enhanced anti-detection support"""
+    """Handle job URL scraping with enhanced LinkedIn login and manual entry support"""
     if request.method == 'POST':
         form = JobURLForm(request.POST)
         if form.is_valid():
             url = form.cleaned_data['url']
             
-            # Check if this is a protected site like SEEK
+            # Check for LinkedIn jobs and offer enhanced options
             from urllib.parse import urlparse
             domain = urlparse(url).netloc.lower()
+            is_linkedin = 'linkedin.com' in domain
             is_protected_site = any(protected in domain for protected in ['seek.com', 'indeed.com', 'linkedin.com'])
             
             # Create scraping session
@@ -68,11 +70,33 @@ def scrape_job_url(request):
             )
             
             try:
+                # For LinkedIn jobs, check if we should offer enhanced options first
+                if is_linkedin:
+                    # Check if user has LinkedIn credentials in session
+                    has_linkedin_creds = request.session.get('linkedin_credentials_saved', False)
+                    
+                    if not has_linkedin_creds:
+                        # Offer LinkedIn login or manual entry options
+                        session.status = 'requires_authentication'
+                        session.error_message = 'LinkedIn authentication recommended for better results'
+                        session.completed_at = timezone.now()
+                        session.save()
+                        
+                        # Store URL for enhanced manual entry
+                        request.session['pending_job_url'] = url
+                        
+                        messages.info(
+                            request, 
+                            'This is a LinkedIn job. For best results, we recommend using LinkedIn authentication or manual entry methods.'
+                        )
+                        
+                        return redirect(f'/enhanced-manual-entry/?url={url}&reason=linkedin_auth_recommended')
+                
                 # Determine if we should use paid APIs
                 app_version = getattr(settings, 'APP_VERSION', 'free')
                 use_paid = app_version == 'paid'
                 
-                # Initialize enhanced scraping service
+                # Initialize enhanced scraping service with safe data handling
                 scraper = JobScrapingService(use_paid_apis=use_paid)
                 
                 # Scrape the job using the comprehensive service
@@ -88,15 +112,28 @@ def scrape_job_url(request):
                     session.completed_at = timezone.now()
                     session.save()
                     
+                    # Store URL for enhanced manual entry
+                    request.session['pending_job_url'] = url
+                    
                     # Provide specific guidance based on the failure type
                     if 'auth' in method_used:
-                        messages.warning(request, 'LinkedIn requires login to view this job. Please use manual entry to add the job details.')
+                        messages.warning(
+                            request, 
+                            'LinkedIn requires authentication to view this job. Choose from our enhanced manual entry options.'
+                        )
+                        return redirect(f'/enhanced-manual-entry/?url={url}&reason=linkedin_auth_required')
                     elif 'rate' in method_used:
-                        messages.warning(request, 'LinkedIn is temporarily blocking requests. Please try again later or use manual entry.')
+                        messages.warning(
+                            request, 
+                            'LinkedIn is temporarily blocking requests. Try our enhanced manual entry options.'
+                        )
+                        return redirect(f'/enhanced-manual-entry/?url={url}&reason=linkedin_rate_limited')
                     else:
-                        messages.warning(request, 'Could not automatically extract job information. Please use manual entry to add this job.')
-                    
-                    return redirect(f'/manual-entry/?url={url}')
+                        messages.warning(
+                            request, 
+                            'Could not automatically extract job information. Choose from our enhanced manual entry options.'
+                        )
+                        return redirect(f'/enhanced-manual-entry/?url={url}&reason=extraction_failed')
                 
                 if job_data and job_data.get('title') and job_data.get('title') not in ['Job Title Not Available', 'Extraction Failed', 'Authentication Required', 'Rate Limited']:
                     try:

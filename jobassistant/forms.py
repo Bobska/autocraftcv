@@ -344,3 +344,185 @@ class FeedbackForm(forms.Form):
         required=False,
         label='Suggestions (Optional)'
     )
+
+
+# Manual Entry Forms for LinkedIn Login + Manual Entry Enhancement
+
+class ManualJobEntryForm(forms.Form):
+    """Form for manual job entry when scraping fails"""
+    
+    title = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., Senior Software Developer',
+            'required': True
+        }),
+        label='Job Title'
+    )
+    
+    company = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., Google Inc.',
+            'required': True
+        }),
+        label='Company Name'
+    )
+    
+    location = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., San Francisco, CA or Remote',
+            'required': True
+        }),
+        label='Location'
+    )
+    
+    employment_type = forms.ChoiceField(
+        choices=[
+            ('', 'Select Employment Type'),
+            ('full-time', 'Full-time'),
+            ('part-time', 'Part-time'), 
+            ('contract', 'Contract'),
+            ('internship', 'Internship'),
+            ('temporary', 'Temporary'),
+            ('freelance', 'Freelance'),
+        ],
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'required': True
+        }),
+        label='Employment Type'
+    )
+    
+    salary_range = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., $80,000 - $120,000 per year or Competitive'
+        }),
+        label='Salary Range (Optional)'
+    )
+    
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 8,
+            'placeholder': 'Enter the job description, responsibilities, and duties...',
+            'required': True
+        }),
+        label='Job Description'
+    )
+    
+    requirements = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 
+            'rows': 6,
+            'placeholder': 'Enter the job requirements, qualifications, and skills...'
+        }),
+        label='Requirements & Qualifications (Optional)'
+    )
+    
+    application_instructions = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'How to apply, contact information, or application links...'
+        }),
+        label='Application Instructions (Optional)'
+    )
+
+
+class SmartManualEntryForm(forms.Form):
+    """Form for AI-assisted manual entry using pasted content"""
+    
+    job_url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'https://example.com/job-posting'
+        }),
+        label='Job URL (Optional)'
+    )
+    
+    raw_content = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 15,
+            'placeholder': 'Paste the complete job posting content here...\n\nInstructions:\n1. Go to the job posting page\n2. Select all content (Ctrl+A)\n3. Copy (Ctrl+C)\n4. Paste here\n5. Our AI will extract the structured information',
+            'required': True
+        }),
+        label='Job Content'
+    )
+
+
+class LinkedInCredentialsForm(forms.Form):
+    """Form for LinkedIn login credentials"""
+    
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'your.linkedin.email@example.com',
+            'required': True
+        }),
+        label='LinkedIn Email'
+    )
+    
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Your LinkedIn password',
+            'required': True
+        }),
+        label='LinkedIn Password'
+    )
+    
+    save_credentials = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        label='Save credentials for this session (not stored permanently)'
+    )
+
+
+class JobScrapingOptionsForm(forms.Form):
+    """Form for selecting job scraping options"""
+    
+    job_url = forms.URLField(
+        widget=forms.URLInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'https://linkedin.com/jobs/view/123456 or https://seek.com.au/job/123456',
+            'required': True
+        }),
+        label='Job URL'
+    )
+    
+    scraping_method = forms.ChoiceField(
+        choices=[
+            ('auto', 'Automatic (Try all methods)'),
+            ('standard', 'Standard scraping'),
+            ('linkedin_auth', 'LinkedIn with authentication'),
+            ('manual', 'Manual entry only'),
+            ('smart_manual', 'Smart paste + AI parsing'),
+        ],
+        widget=forms.RadioSelect(attrs={
+            'class': 'form-check-input'
+        }),
+        initial='auto',
+        label='Scraping Method'
+    )
+    
+    use_linkedin_login = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        label='Use LinkedIn login for better results (LinkedIn jobs only)'
+    )

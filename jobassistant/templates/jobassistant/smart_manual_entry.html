@@ -1,0 +1,462 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Smart Manual Entry - JobTailor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .smart-entry-hero {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .instruction-step {
+        background: #f8f9fa;
+        border-left: 4px solid #28a745;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .instruction-step .step-number {
+        background: #28a745;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 1rem;
+    }
+    
+    .paste-area {
+        min-height: 300px;
+        border: 2px dashed #28a745;
+        border-radius: 8px;
+        background: #f8fff9;
+        transition: all 0.3s ease;
+    }
+    
+    .paste-area:focus {
+        border-color: #20c997;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        background: #ffffff;
+    }
+    
+    .content-preview {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .ai-indicator {
+        display: inline-flex;
+        align-items: center;
+        background: linear-gradient(45deg, #007bff, #6610f2);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+    
+    .ai-indicator i {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            
+            <!-- Hero Section -->
+            <div class="smart-entry-hero text-center">
+                <div class="mb-3">
+                    <i class="fas fa-magic" style="font-size: 3rem;"></i>
+                </div>
+                <h2 class="display-6 mb-3">Smart Manual Entry</h2>
+                <p class="lead mb-0">Paste job content and let AI extract structured information automatically</p>
+            </div>
+            
+            <!-- Failed URL Info -->
+            {% if failed_url %}
+            <div class="alert alert-info mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <div>
+                        <strong>Job URL:</strong> <code>{{ failed_url }}</code>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Instructions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-list-ol me-2"></i>
+                        How to Use Smart Entry
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="instruction-step">
+                        <div class="d-flex align-items-center">
+                            <div class="step-number">1</div>
+                            <div>
+                                <strong>Navigate to the job posting</strong><br>
+                                <span class="text-muted">Open the job posting page in another browser tab</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction-step">
+                        <div class="d-flex align-items-center">
+                            <div class="step-number">2</div>
+                            <div>
+                                <strong>Select all content</strong><br>
+                                <span class="text-muted">Press <kbd>Ctrl+A</kbd> (Windows) or <kbd>Cmd+A</kbd> (Mac) to select all content</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction-step">
+                        <div class="d-flex align-items-center">
+                            <div class="step-number">3</div>
+                            <div>
+                                <strong>Copy the content</strong><br>
+                                <span class="text-muted">Press <kbd>Ctrl+C</kbd> (Windows) or <kbd>Cmd+C</kbd> (Mac) to copy</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction-step">
+                        <div class="d-flex align-items-center">
+                            <div class="step-number">4</div>
+                            <div>
+                                <strong>Paste in the form below</strong><br>
+                                <span class="text-muted">Click in the text area and paste with <kbd>Ctrl+V</kbd> (Windows) or <kbd>Cmd+V</kbd> (Mac)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction-step">
+                        <div class="d-flex align-items-center">
+                            <div class="step-number">5</div>
+                            <div>
+                                <strong>Let AI work its magic</strong><br>
+                                <span class="text-muted">Our AI will automatically extract job title, company, location, description, and requirements</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Smart Entry Form -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="ai-indicator">
+                        <i class="fas fa-brain me-2"></i>
+                        AI-Powered Content Parsing
+                    </div>
+                    <h4 class="mb-0">Paste Job Content</h4>
+                </div>
+                
+                <div class="card-body">
+                    <form method="post" id="smartEntryForm">
+                        {% csrf_token %}
+                        
+                        <!-- Job URL Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.job_url.id_for_label }}" class="form-label">{{ form.job_url.label }}</label>
+                            {{ form.job_url }}
+                            {% if form.job_url.help_text %}
+                            <div class="form-text">{{ form.job_url.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Content Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.raw_content.id_for_label }}" class="form-label">{{ form.raw_content.label }}</label>
+                            <div class="position-relative">
+                                {{ form.raw_content }}
+                                <div id="content-counter" class="position-absolute top-0 end-0 p-2 text-muted small">
+                                    0 characters
+                                </div>
+                            </div>
+                            {% if form.raw_content.help_text %}
+                            <div class="form-text">{{ form.raw_content.help_text }}</div>
+                            {% endif %}
+                            
+                            <!-- Content Preview -->
+                            <div id="content-preview" class="content-preview" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Content Preview:</strong>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="togglePreview()">
+                                        <i class="fas fa-eye-slash"></i> Hide
+                                    </button>
+                                </div>
+                                <div id="preview-text" class="text-muted"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Processing Info -->
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <div>
+                                    <strong>What happens next?</strong><br>
+                                    Our AI will analyze the content and extract:
+                                    <span class="badge bg-primary ms-1">Job Title</span>
+                                    <span class="badge bg-primary ms-1">Company</span>
+                                    <span class="badge bg-primary ms-1">Location</span>
+                                    <span class="badge bg-primary ms-1">Description</span>
+                                    <span class="badge bg-primary ms-1">Requirements</span>
+                                    <span class="badge bg-primary ms-1">Salary</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'jobassistant:enhanced_manual_entry' %}?url={{ failed_url }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Manual Options
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submit-btn">
+                                <i class="fas fa-magic me-2"></i>Parse with AI
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Error Display -->
+            {% if errors %}
+            <div class="alert alert-danger mt-3">
+                <h6>Please correct the following errors:</h6>
+                <ul class="mb-0">
+                    {% for error in errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+        </div>
+    </div>
+</div>
+
+<script>
+// Character counter
+const contentTextarea = document.querySelector('textarea[name="raw_content"]');
+const contentCounter = document.getElementById('content-counter');
+const contentPreview = document.getElementById('content-preview');
+const previewText = document.getElementById('preview-text');
+
+contentTextarea.addEventListener('input', function() {
+    const length = this.value.length;
+    contentCounter.textContent = `${length.toLocaleString()} characters`;
+    
+    // Show preview if content is substantial
+    if (length > 100) {
+        const preview = this.value.substring(0, 200) + (this.value.length > 200 ? '...' : '');
+        previewText.textContent = preview;
+        contentPreview.style.display = 'block';
+    } else {
+        contentPreview.style.display = 'none';
+    }
+    
+    // Update placeholder based on content
+    if (length === 0) {
+        this.classList.remove('paste-area');
+    } else {
+        this.classList.add('paste-area');
+    }
+});
+
+function togglePreview() {
+    const preview = document.getElementById('content-preview');
+    const button = preview.querySelector('button');
+    
+    if (preview.style.display === 'none') {
+        preview.style.display = 'block';
+        button.innerHTML = '<i class="fas fa-eye-slash"></i> Hide';
+    } else {
+        preview.style.display = 'none';
+        button.innerHTML = '<i class="fas fa-eye"></i> Show';
+    }
+}
+
+// Handle form submission
+document.getElementById('smartEntryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = document.getElementById('submit-btn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Validate content length
+    const content = formData.get('raw_content');
+    if (!content || content.trim().length < 50) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-warning mt-3';
+        alert.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Please paste more substantial job content (at least 50 characters) for better AI extraction.
+        `;
+        this.parentNode.insertBefore(alert, this.nextSibling);
+        return;
+    }
+    
+    // Show loading state
+    submitBtn.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            <span>AI is analyzing content...</span>
+        </div>
+    `;
+    submitBtn.disabled = true;
+    
+    // Add processing indicator
+    const processingAlert = document.createElement('div');
+    processingAlert.className = 'alert alert-info mt-3';
+    processingAlert.id = 'processing-alert';
+    processingAlert.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+            <div>
+                <strong>AI Processing in Progress...</strong><br>
+                <span class="text-muted">Extracting job title, company, location, and requirements from the content.</span>
+            </div>
+        </div>
+    `;
+    this.parentNode.insertBefore(processingAlert, this.nextSibling);
+    
+    fetch(this.action || window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Remove processing alert
+        const processingAlert = document.getElementById('processing-alert');
+        if (processingAlert) processingAlert.remove();
+        
+        if (data.success) {
+            // Show success message with AI details
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success mt-3';
+            alert.innerHTML = `
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>AI Parsing Successful!</strong>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <small><strong>Parsing Quality:</strong> ${data.parsing_quality || 'Good'}</small><br>
+                        <small><strong>Method Used:</strong> ${data.method_used || 'AI Assisted'}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <small><strong>AI Parsed:</strong> ${data.ai_parsed ? 'Yes' : 'No'}</small><br>
+                        <small><strong>Needs Review:</strong> ${data.needs_review ? 'Yes' : 'No'}</small>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">Redirecting to job details...</small>
+                </div>
+            `;
+            
+            this.parentNode.insertBefore(alert, this.nextSibling);
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.location.href = data.redirect_url;
+            }, 2000);
+        } else {
+            // Show error messages
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger mt-3';
+            alert.innerHTML = `
+                <h6>AI Processing Failed:</h6>
+                <ul class="mb-0">
+                    ${data.errors ? data.errors.map(error => `<li>${error}</li>`).join('') : `<li>${data.error || 'An error occurred during AI processing'}</li>`}
+                </ul>
+            `;
+            
+            this.parentNode.insertBefore(alert, this.nextSibling);
+            
+            // Reset button
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        
+        // Remove processing alert
+        const processingAlert = document.getElementById('processing-alert');
+        if (processingAlert) processingAlert.remove();
+        
+        // Show generic error
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger mt-3';
+        alert.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            An error occurred during AI processing. Please try again or use manual form entry.
+        `;
+        
+        this.parentNode.insertBefore(alert, this.nextSibling);
+        
+        // Reset button
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Add paste event listener for better UX
+contentTextarea.addEventListener('paste', function(e) {
+    setTimeout(() => {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+        alert.innerHTML = `
+            <i class="fas fa-check me-2"></i>
+            Content pasted successfully! Review and click "Parse with AI" when ready.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        this.parentNode.insertBefore(alert, this.nextSibling);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 3000);
+    }, 100);
+});
+
+// Initialize character counter on page load
+if (contentTextarea.value) {
+    contentTextarea.dispatchEvent(new Event('input'));
+}
+</script>
+{% endblock %}

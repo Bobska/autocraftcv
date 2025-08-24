@@ -104,7 +104,7 @@ def scrape_job_url(request):
                 # Check if manual entry is required
                 if (job_data.get('requires_manual_entry') or 
                     job_data.get('manual_entry_required') or 
-                    method_used in ['linkedin_auth_required', 'linkedin_rate_limited', 'linkedin_failed']):
+                    method_used in ['linkedin_auth_required', 'linkedin_rate_limited', 'linkedin_failed', 'linkedin_auth_bypass_failed', 'linkedin_bypass_all_failed']):
                     
                     session.status = 'failed'
                     session.error_message = job_data.get('fallback_message', 'Manual entry required')
@@ -115,16 +115,22 @@ def scrape_job_url(request):
                     request.session['pending_job_url'] = url
                     
                     # Provide specific guidance based on the failure type
-                    if 'auth' in method_used:
-                        messages.warning(
-                            request, 
-                            'LinkedIn requires authentication to view this job. Choose from our enhanced manual entry options.'
-                        )
-                        return redirect(f'/enhanced-manual-entry/?url={url}&reason=linkedin_auth_required')
+                    if 'auth' in method_used or 'bypass' in method_used:
+                        if job_data.get('bypass_attempted'):
+                            messages.warning(
+                                request, 
+                                'LinkedIn authentication bypass methods were attempted but failed. Multiple advanced techniques were tried including mobile access, cache lookup, and stealth browsing. Please use manual entry for best results.'
+                            )
+                        else:
+                            messages.warning(
+                                request, 
+                                'LinkedIn requires authentication to view this job. Our system will attempt bypass methods automatically.'
+                            )
+                        return redirect(f'/enhanced-manual-entry/?url={url}&reason=linkedin_auth_bypass_failed')
                     elif 'rate' in method_used:
                         messages.warning(
                             request, 
-                            'LinkedIn is temporarily blocking requests. Try our enhanced manual entry options.'
+                            'LinkedIn is temporarily blocking requests. Multiple bypass methods were attempted. Try our enhanced manual entry options or wait and try again later.'
                         )
                         return redirect(f'/enhanced-manual-entry/?url={url}&reason=linkedin_rate_limited')
                     else:
@@ -847,6 +853,11 @@ def _scrape_job_background(task_id, job_url, session_key):
         # Stage 4: Extract job details with timeout
         progress.update(60, "Extracting job details...", "4/6")
         
+        # Special handling for LinkedIn URLs - update progress for bypass attempts
+        if 'linkedin.com' in job_url.lower():
+            progress.update(45, "Attempting LinkedIn access...", "3/6")
+            simulate_progress_delay(1.0, 2.0)
+        
         job_data = None
         method_used = "unknown"
         
@@ -867,6 +878,19 @@ def _scrape_job_background(task_id, job_url, session_key):
             scraping_thread.daemon = True
             scraping_thread.start()
             
+            # Provide progress updates during scraping for LinkedIn
+            if 'linkedin.com' in job_url.lower():
+                for i, message in enumerate([
+                    "Checking for authentication wall...",
+                    "Trying mobile version access...",
+                    "Attempting bypass methods...",
+                    "Using stealth browsing techniques..."
+                ]):
+                    time.sleep(30)  # Wait 30 seconds between updates
+                    if not scraping_thread.is_alive():
+                        break
+                    progress.update(50 + (i * 3), message, "4/6")
+            
             # Wait for completion with timeout (5 minutes)
             scraping_thread.join(timeout=300)
             
@@ -881,6 +905,14 @@ def _scrape_job_background(task_id, job_url, session_key):
             job_data = scraping_result['job_data']
             method_used = scraping_result['method_used'] or "unknown"
             logger.info(f"Scraping completed using method: {method_used}")
+            
+            # Update progress based on method used
+            if 'bypass' in method_used:
+                progress.update(65, "LinkedIn bypass successful!", "4/6")
+            elif 'linkedin' in method_used and 'auth' in method_used:
+                progress.update(65, "LinkedIn authentication wall detected", "4/6")
+            else:
+                progress.update(65, "Job data extracted successfully", "4/6")
                     
         except (TimeoutError, Exception) as scraping_error:
             logger.error(f"Scraping failed: {scraping_error}")

@@ -43,22 +43,38 @@ class JobScrapingService:
         """
         logger.info(f"Starting comprehensive job scraping for URL: {url}")
         
-        # Special handling for LinkedIn URLs
+        # Special handling for LinkedIn URLs - use enhanced bypass methods
         if 'linkedin.com/jobs' in url.lower():
-            logger.info("Detected LinkedIn URL, using specialized LinkedIn scraper")
+            logger.info("Detected LinkedIn URL, using specialized LinkedIn scraper with bypass methods")
             try:
                 job_data, method = self.linkedin_scraper.scrape_linkedin_job(url)
                 
-                # Check if manual entry is required
-                if job_data.get('requires_manual_entry'):
-                    logger.warning("LinkedIn scraper requires manual fallback")
-                    return job_data, method
+                # Check if we got good data or need to try bypass methods
+                if job_data.get('requires_manual_entry') or method in ['linkedin_auth_required', 'linkedin_rate_limited']:
+                    logger.info("Primary LinkedIn scraper hit restrictions, trying bypass methods")
+                    
+                    # Try the new bypass scraper
+                    try:
+                        from .linkedin_bypass_scraper import LinkedInBypassScraper
+                        bypass_scraper = LinkedInBypassScraper()
+                        bypass_data, bypass_method = bypass_scraper.scrape_linkedin_job(url)
+                        
+                        if self._validate_job_data(bypass_data) and not bypass_data.get('requires_manual_entry'):
+                            logger.info(f"LinkedIn bypass successful with method: {bypass_method}")
+                            return bypass_data, f"linkedin_bypass_{bypass_method}"
+                        else:
+                            logger.warning("LinkedIn bypass methods also failed")
+                            
+                    except Exception as e:
+                        logger.error(f"LinkedIn bypass scraper failed: {str(e)}")
                 
+                # Return original data if bypass not needed or failed
                 if self._validate_job_data(job_data):
-                    logger.info(f"Successfully scraped LinkedIn job with method: {method}")
+                    logger.info(f"LinkedIn extraction completed with method: {method}")
                     return job_data, method
                 else:
                     logger.warning("LinkedIn scraper returned insufficient data, trying enhanced scraper as fallback")
+                    
             except Exception as e:
                 logger.error(f"LinkedIn scraper failed: {str(e)}, trying enhanced scraper as fallback")
         

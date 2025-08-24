@@ -672,25 +672,62 @@ class LinkedInJobScraper:
             return ""
     
     def handle_auth_fallback(self, url: str) -> Tuple[Dict, str]:
-        """Handle cases where LinkedIn requires authentication"""
+        """Handle cases where LinkedIn requires authentication - try bypass methods first"""
+        logger.warning(f"LinkedIn authentication wall detected for: {url}, attempting bypass methods")
+        
+        try:
+            # Import and use the new bypass scraper
+            from .linkedin_bypass_scraper import LinkedInBypassScraper
+            
+            bypass_scraper = LinkedInBypassScraper()
+            job_data, method = bypass_scraper.scrape_linkedin_job(url)
+            
+            # Check if bypass was successful
+            if job_data.get('title') and not job_data.get('requires_manual_entry'):
+                logger.info(f"LinkedIn bypass successful using method: {method}")
+                return job_data, f"bypass_{method}"
+            else:
+                logger.warning("LinkedIn bypass methods failed, falling back to manual entry")
+                
+        except Exception as e:
+            logger.error(f"LinkedIn bypass scraper failed: {str(e)}")
+        
+        # If bypass fails, return enhanced fallback
         fallback_data = {
-            'title': 'Authentication Required',
-            'company': 'LinkedIn Login Required',
+            'title': 'LinkedIn Authentication Bypass Failed',
+            'company': 'LinkedIn Access Restricted',
             'location': None,
-            'description': f'LinkedIn requires login to view this job posting: {url}',
+            'description': f'''LinkedIn requires authentication to view this job posting: {url}
+
+Multiple bypass methods were attempted but failed. This happens when LinkedIn has strong anti-bot protection active.
+
+Recommended actions:
+1. Visit the URL manually in your browser
+2. Copy and paste the job content using our manual entry tool
+3. Try again later when LinkedIn's protection may be less strict
+4. Look for the same job on the company's careers page
+
+Our system attempted several bypass methods including:
+- Mobile version access
+- Google Cache lookup
+- Archive.org search
+- Advanced request headers
+- Stealth browser automation
+- Embedded content extraction''',
             'requirements': None,
             'responsibilities': None,
             'salary_range': None,
             'employment_type': None,
-            'application_instructions': None,
-            'raw_content': 'LinkedIn authentication wall detected',
+            'application_instructions': 'Visit the original LinkedIn URL to apply',
+            'raw_content': 'LinkedIn authentication wall - bypass methods attempted but failed',
             'requires_manual_entry': True,
-            'fallback_message': 'Please copy and paste the job content manually or try accessing the URL in a regular browser.',
+            'fallback_message': 'Multiple bypass methods attempted. Please use manual entry for best results.',
+            'bypass_attempted': True,
             'url': url
         }
         
-        logger.warning(f"LinkedIn authentication required for: {url}")
-        return fallback_data, 'linkedin_auth_required'
+        logger.warning(f"LinkedIn authentication bypass failed for: {url}")
+        return fallback_data, 'linkedin_auth_bypass_failed'
     
     def handle_rate_limit_fallback(self, url: str) -> Tuple[Dict, str]:
         """Handle cases where LinkedIn is rate limiting"""

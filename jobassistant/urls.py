@@ -30,4 +30,10 @@ urlpatterns = [
     
     # API endpoints
     path('api/scraping-status/<uuid:session_id>/', views.check_scraping_status, name='check_scraping_status'),
+    
+    # Progress tracking API endpoints
+    path('api/progress/<str:task_id>/', views.get_progress, name='get_progress'),
+    path('api/scrape-with-progress/', views.scrape_job_with_progress, name='scrape_job_with_progress'),
+    path('api/parse-resume-with-progress/', views.parse_resume_with_progress, name='parse_resume_with_progress'),
+    path('api/generate-documents-with-progress/', views.generate_documents_with_progress, name='generate_documents_with_progress'),
 ]

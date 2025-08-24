@@ -111,7 +111,10 @@
                                 {% endif %}
                             </div>
                             
-                            <button type="submit" class="btn btn-primary w-100" onclick="showLoadingState(this.form, 'Scraping job posting...')">
+                            <!-- Progress Container -->
+                            <div id="job-scraping-progress" style="display: none;"></div>
+                            
+                            <button type="submit" class="btn btn-primary w-100" data-original-text="Scrape Job Posting">
                                 <i class="fas fa-download"></i> Scrape Job Posting
                             </button>
                         </form>
@@ -186,7 +189,10 @@
                                         </div>
                                     {% endif %}
                                     
-                                    <button type="submit" class="btn btn-success w-100" onclick="showLoadingState(this.form, 'Parsing resume...')">
+                                    <!-- Progress Container -->
+                                    <div id="resume-parsing-progress" style="display: none;"></div>
+                                    
+                                    <button type="submit" class="btn btn-success w-100" data-original-text="Upload & Parse Resume">
                                         <i class="fas fa-file-upload"></i> Upload & Parse Resume
                                     </button>
                                 </form>
@@ -362,5 +368,56 @@
 
     // Hide file input
     document.getElementById('id_resume_file').style.display = 'none';
+    
+    // Initialize progress tracking forms
+    document.addEventListener('DOMContentLoaded', function() {
+        // Job URL Form with Progress Tracking
+        const jobUrlForm = document.getElementById('jobUrlForm');
+        if (jobUrlForm) {
+            new ProgressForm(jobUrlForm, {
+                progressContainer: document.getElementById('job-scraping-progress'),
+                endpoint: '/api/scrape-with-progress/',
+                method: 'POST',
+                onSuccess: function(data) {
+                    // Redirect to job details page
+                    window.location.href = '/job/' + data.job_id + '/';
+                },
+                onError: function(data) {
+                    alert('Error: ' + (data.error || 'Failed to scrape job posting'));
+                }
+            });
+        }
+        
+        // Resume Upload Form with Progress Tracking
+        const resumeUploadForm = document.getElementById('resumeUploadForm');
+        if (resumeUploadForm) {
+            new ProgressForm(resumeUploadForm, {
+                progressContainer: document.getElementById('resume-parsing-progress'),
+                endpoint: '/api/parse-resume-with-progress/',
+                method: 'POST',
+                onSuccess: function(data) {
+                    // Redirect to profile review page
+                    window.location.href = '/profile/' + data.profile_id + '/review/';
+                },
+                onError: function(data) {
+                    alert('Error: ' + (data.error || 'Failed to parse resume'));
+                }
+            });
+        }
+        
+        // Show progress container when form is submitted
+        function showProgressContainer(formId, containerId) {
+            const form = document.getElementById(formId);
+            const container = document.getElementById(containerId);
+            if (form && container) {
+                form.addEventListener('submit', function() {
+                    container.style.display = 'block';
+                });
+            }
+        }
+        
+        showProgressContainer('jobUrlForm', 'job-scraping-progress');
+        showProgressContainer('resumeUploadForm', 'resume-parsing-progress');
+    });
 </script>
 {% endblock %}

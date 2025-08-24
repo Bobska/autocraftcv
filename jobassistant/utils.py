@@ -1,0 +1,132 @@
+"""
+Progress tracking utilities for AutoCraftCV
+Handles real-time progress updates for long-running operations
+"""
+
+import json
+import time
+import uuid
+from django.core.cache import cache
+from django.conf import settings
+from typing import Dict, Any, Optional
+
+
+class ProgressTracker:
+    """Utility class for tracking progress of long-running operations"""
+    
+    def __init__(self, task_id: Optional[str] = None, total_steps: int = 100):
+        self.task_id = task_id or str(uuid.uuid4())
+        self.total_steps = total_steps
+        self.current_step = 0
+        self.start_time = time.time()
+        self.status = "Initializing..."
+        self.stage = "1/1"
+        self.error_message = None
+        self.completed = False
+        
+    def update(self, step: int, status: str, stage: Optional[str] = None, error: Optional[str] = None):
+        """Update progress information"""
+        self.current_step = min(step, self.total_steps)
+        self.status = status
+        if stage:
+            self.stage = stage
+        if error:
+            self.error_message = error
+            self.completed = True
+        
+        # Calculate progress percentage
+        progress = int((self.current_step / self.total_steps) * 100)
+        
+        # Estimate remaining time
+        elapsed_time = time.time() - self.start_time
+        if self.current_step > 0:
+            estimated_total = elapsed_time * (self.total_steps / self.current_step)
+            estimated_remaining = max(0, int(estimated_total - elapsed_time))
+        else:
+            estimated_remaining = None
+        
+        # Store progress in cache
+        progress_data = {
+            'task_id': self.task_id,
+            'progress': progress,
+            'status': self.status,
+            'stage': self.stage,
+            'error': self.error_message,
+            'completed': self.completed or progress >= 100,
+            'elapsed_time': int(elapsed_time),
+            'estimated_remaining': estimated_remaining,
+            'timestamp': time.time()
+        }
+        
+        # Cache for 10 minutes
+        cache.set(f'progress_{self.task_id}', progress_data, timeout=600)
+        return progress_data
+    
+    def complete(self, status: str = "Complete!"):
+        """Mark task as completed"""
+        self.completed = True
+        return self.update(self.total_steps, status)
+    
+    def set_error(self, error_message: str):
+        """Mark task as failed with error"""
+        self.error_message = error_message
+        self.completed = True
+        return self.update(self.current_step, f"Error: {error_message}")
+    
+    @classmethod
+    def get_progress(cls, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get current progress for a task"""
+        return cache.get(f'progress_{task_id}')
+    
+    @classmethod
+    def cleanup_progress(cls, task_id: str):
+        """Remove progress data from cache"""
+        cache.delete(f'progress_{task_id}')
+
+
+class JobScrapingProgress:
+    """Predefined progress stages for job scraping"""
+    
+    STAGES = [
+        (5, "Validating URL...", "1/6"),
+        (15, "Fetching job page...", "2/6"),
+        (35, "Parsing HTML content...", "3/6"),
+        (60, "Extracting job details...", "4/6"),
+        (80, "Processing requirements...", "5/6"),
+        (95, "Structuring data...", "6/6"),
+        (100, "Complete!", "6/6")
+    ]
+
+
+class ResumeParsingProgress:
+    """Predefined progress stages for resume parsing"""
+    
+    STAGES = [
+        (10, "Uploading file...", "1/6"),
+        (25, "Validating file format...", "2/6"),
+        (45, "Extracting text content...", "3/6"),
+        (65, "Parsing sections...", "4/6"),
+        (85, "Structuring data...", "5/6"),
+        (95, "Finalizing profile...", "6/6"),
+        (100, "Complete!", "6/6")
+    ]
+
+
+class AIGenerationProgress:
+    """Predefined progress stages for AI content generation"""
+    
+    STAGES = [
+        (10, "Analyzing job posting...", "1/5"),
+        (30, "Processing user profile...", "2/5"),
+        (60, "Generating content...", "3/5"),
+        (85, "Formatting output...", "4/5"),
+        (95, "Finalizing documents...", "5/5"),
+        (100, "Complete!", "5/5")
+    ]
+
+
+def simulate_progress_delay(min_delay: float = 0.5, max_delay: float = 2.0):
+    """Add realistic delay for progress updates"""
+    import random
+    delay = random.uniform(min_delay, max_delay)
+    time.sleep(delay)

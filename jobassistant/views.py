@@ -9,6 +9,8 @@ from django.core.files.storage import default_storage
 from django.utils import timezone
 import json
 import time
+import uuid
+import threading
 import logging
 
 from .models import JobPosting, UserProfile, GeneratedDocument, ScrapingSession
@@ -18,6 +20,15 @@ from .forms import (
 )
 from .services.scraping_service import JobScrapingService
 from .services.parsing_service import ResumeParsingService
+from .services.content_generation_service import ContentGenerationService
+from .services.document_generation_service import DocumentGenerationService
+from .utils import (
+    ProgressTracker, 
+    JobScrapingProgress, 
+    ResumeParsingProgress, 
+    AIGenerationProgress,
+    simulate_progress_delay
+)
 from .services.content_generation_service import ContentGenerationService
 from .services.document_generation_service import DocumentGenerationService
 
@@ -487,6 +498,368 @@ def clear_session(request):
 def about(request):
     """About page"""
     return render(request, 'jobassistant/about.html')
+
+
+# Progress Tracking API Views
+@csrf_exempt
+def get_progress(request, task_id):
+    """Get current progress for a task"""
+    progress_data = ProgressTracker.get_progress(task_id)
+    if progress_data:
+        return JsonResponse(progress_data)
+    else:
+        return JsonResponse({'error': 'Task not found'}, status=404)
+
+
+@csrf_exempt
+def scrape_job_with_progress(request):
+    """Scrape job with real-time progress tracking"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        job_url = data.get('url', '').strip()
+        
+        if not job_url:
+            return JsonResponse({'error': 'URL is required'}, status=400)
+        
+        # Generate task ID
+        task_id = str(uuid.uuid4())
+        
+        # Start background scraping task
+        thread = threading.Thread(
+            target=_scrape_job_background,
+            args=(task_id, job_url, request.session.session_key)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return JsonResponse({'task_id': task_id})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error starting job scraping: {e}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
+
+def _scrape_job_background(task_id, job_url, session_key):
+    """Background task for job scraping with progress updates"""
+    progress = ProgressTracker(task_id)
+    
+    try:
+        # Stage 1: Validate URL
+        progress.update(5, "Validating URL...", "1/6")
+        simulate_progress_delay(0.5, 1.0)
+        
+        # Stage 2: Initialize scraping service
+        progress.update(15, "Fetching job page...", "2/6")
+        scraper = JobScrapingService()
+        simulate_progress_delay(1.0, 2.0)
+        
+        # Stage 3: Parse HTML content
+        progress.update(35, "Parsing HTML content...", "3/6")
+        simulate_progress_delay(1.5, 3.0)
+        
+        # Stage 4: Extract job details
+        progress.update(60, "Extracting job details...", "4/6")
+        job_data, method_used = scraper.scrape_job(job_url)
+        simulate_progress_delay(1.0, 2.0)
+        
+        # Stage 5: Process requirements
+        progress.update(80, "Processing requirements...", "5/6")
+        simulate_progress_delay(0.5, 1.0)
+        
+        # Stage 6: Save to database
+        progress.update(95, "Saving job data...", "6/6")
+        
+        # Create JobPosting instance
+        job_posting = JobPosting.objects.create(
+            url=job_url,
+            title=job_data.get('title', ''),
+            company=job_data.get('company', ''),
+            location=job_data.get('location', ''),
+            description=job_data.get('description', ''),
+            requirements=job_data.get('requirements', ''),
+            qualifications=job_data.get('qualifications', ''),
+            responsibilities=job_data.get('responsibilities', ''),
+            salary_range=job_data.get('salary_range', ''),
+            employment_type=job_data.get('employment_type', ''),
+            raw_content=job_data.get('raw_content', ''),
+            scraping_method=method_used
+        )
+        
+        # Store job ID in session for retrieval
+        from django.contrib.sessions.backends.db import SessionStore
+        try:
+            session_store = SessionStore(session_key=session_key)
+            session_data = session_store.load()
+            session_data['last_job_id'] = str(job_posting.id)
+            session_store.save()
+        except Exception as e:
+            logger.warning(f"Could not save to session: {e}")
+        
+        # Complete
+        progress.complete("Job scraping completed!")
+        
+    except Exception as e:
+        logger.error(f"Error in background job scraping: {e}")
+        progress.set_error(f"Failed to scrape job: {str(e)}")
+
+
+@csrf_exempt
+def parse_resume_with_progress(request):
+    """Parse resume with real-time progress tracking"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+    
+    if 'resume_file' not in request.FILES:
+        return JsonResponse({'error': 'No file uploaded'}, status=400)
+    
+    uploaded_file = request.FILES['resume_file']
+    
+    # Generate task ID
+    task_id = str(uuid.uuid4())
+    
+    # Start background parsing task
+    thread = threading.Thread(
+        target=_parse_resume_background,
+        args=(task_id, uploaded_file, request.session.session_key)
+    )
+    thread.daemon = True
+    thread.start()
+    
+    return JsonResponse({'task_id': task_id})
+
+
+def _parse_resume_background(task_id, uploaded_file, session_key):
+    """Background task for resume parsing with progress updates"""
+    progress = ProgressTracker(task_id)
+    
+    try:
+        # Stage 1: Upload file
+        progress.update(10, "Uploading file...", "1/6")
+        simulate_progress_delay(0.5, 1.0)
+        
+        # Stage 2: Validate file format
+        progress.update(25, "Validating file format...", "2/6")
+        simulate_progress_delay(0.5, 1.0)
+        
+        # Stage 3: Extract text content
+        progress.update(45, "Extracting text content...", "3/6")
+        parser = ResumeParsingService()
+        simulate_progress_delay(2.0, 4.0)
+        
+        # Stage 4: Parse sections
+        progress.update(65, "Parsing sections...", "4/6")
+        parsed_data = parser.parse_resume(uploaded_file)
+        simulate_progress_delay(1.5, 3.0)
+        
+        # Stage 5: Structure data
+        progress.update(85, "Structuring data...", "5/6")
+        simulate_progress_delay(1.0, 2.0)
+        
+        # Stage 6: Save profile
+        progress.update(95, "Finalizing profile...", "6/6")
+        
+        # Create or update UserProfile
+        profile, created = UserProfile.objects.get_or_create(
+            session_key=session_key,
+            defaults={
+                'full_name': parsed_data.get('name', ''),
+                'email': parsed_data.get('email', ''),
+                'phone': parsed_data.get('phone', ''),
+                'location': parsed_data.get('location', ''),
+                'professional_summary': parsed_data.get('summary', ''),
+                'technical_skills': ', '.join(parsed_data.get('technical_skills', [])),
+                'soft_skills': ', '.join(parsed_data.get('soft_skills', [])),
+                'work_experience': parsed_data.get('experience', ''),
+                'education': parsed_data.get('education', ''),
+                'achievements': parsed_data.get('achievements', ''),
+                'resume_file': uploaded_file,
+                'parsed_content': parsed_data.get('raw_text', '')
+            }
+        )
+        
+        if not created:
+            # Update existing profile
+            for field, value in {
+                'full_name': parsed_data.get('name', ''),
+                'email': parsed_data.get('email', ''),
+                'phone': parsed_data.get('phone', ''),
+                'location': parsed_data.get('location', ''),
+                'professional_summary': parsed_data.get('summary', ''),
+                'technical_skills': ', '.join(parsed_data.get('technical_skills', [])),
+                'soft_skills': ', '.join(parsed_data.get('soft_skills', [])),
+                'work_experience': parsed_data.get('experience', ''),
+                'education': parsed_data.get('education', ''),
+                'achievements': parsed_data.get('achievements', ''),
+                'parsed_content': parsed_data.get('raw_text', '')
+            }.items():
+                if value:  # Only update non-empty values
+                    setattr(profile, field, value)
+            profile.save()
+        
+        # Complete
+        progress.complete("Resume parsing completed!")
+        
+    except Exception as e:
+        logger.error(f"Error in background resume parsing: {e}")
+        progress.set_error(f"Failed to parse resume: {str(e)}")
+
+
+@csrf_exempt
+def generate_documents_with_progress(request):
+    """Generate documents with real-time progress tracking"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        job_id = data.get('job_id')
+        document_types = data.get('document_types', [])
+        output_formats = data.get('output_formats', [])
+        custom_instructions = data.get('custom_instructions', '')
+        
+        if not job_id or not document_types:
+            return JsonResponse({'error': 'Job ID and document types are required'}, status=400)
+        
+        # Generate task ID
+        task_id = str(uuid.uuid4())
+        
+        # Start background generation task
+        thread = threading.Thread(
+            target=_generate_documents_background,
+            args=(task_id, job_id, document_types, output_formats, custom_instructions, request.session.session_key)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return JsonResponse({'task_id': task_id})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error starting document generation: {e}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
+
+def _generate_documents_background(task_id, job_id, document_types, output_formats, custom_instructions, session_key):
+    """Background task for document generation with progress updates"""
+    progress = ProgressTracker(task_id)
+    
+    try:
+        # Stage 1: Analyze job posting
+        progress.update(10, "Analyzing job posting...", "1/5")
+        
+        job_posting = JobPosting.objects.get(id=job_id)
+        user_profile = UserProfile.objects.get(session_key=session_key)
+        simulate_progress_delay(1.0, 2.0)
+        
+        # Convert models to dictionaries for the service
+        job_data = {
+            'title': job_posting.title,
+            'company': job_posting.company,
+            'location': job_posting.location,
+            'description': job_posting.description,
+            'requirements': job_posting.requirements,
+            'qualifications': job_posting.qualifications,
+            'responsibilities': job_posting.responsibilities,
+            'salary_range': job_posting.salary_range,
+            'employment_type': job_posting.employment_type,
+        }
+        
+        profile_data = {
+            'name': user_profile.full_name,
+            'email': user_profile.email,
+            'phone': user_profile.phone,
+            'location': user_profile.location,
+            'summary': user_profile.professional_summary,
+            'technical_skills': user_profile.get_skills_list(),
+            'soft_skills': user_profile.get_soft_skills_list(),
+            'experience': user_profile.work_experience,
+            'education': user_profile.education,
+            'achievements': user_profile.achievements,
+        }
+        
+        # Stage 2: Process user profile
+        progress.update(30, "Processing user profile...", "2/5")
+        simulate_progress_delay(1.0, 2.0)
+        
+        # Stage 3: Generate content
+        progress.update(60, "Generating content...", "3/5")
+        generator = ContentGenerationService()
+        document_ids = []
+        
+        for doc_type in document_types:
+            if doc_type == 'cover_letter':
+                result = generator.generate_cover_letter(profile_data, job_data, custom_instructions)
+                content = result.get('content', '')
+                method_used = result.get('method', 'unknown')
+            elif doc_type == 'resume':
+                result = generator.generate_resume(profile_data, job_data, custom_instructions)
+                content = result.get('content', '')
+                method_used = result.get('method', 'unknown')
+            else:
+                continue
+            
+            # Create document record
+            document = GeneratedDocument.objects.create(
+                job_posting=job_posting,
+                user_profile=user_profile,
+                document_type=doc_type,
+                content=content,
+                custom_instructions=custom_instructions,
+                generation_method=method_used
+            )
+            document_ids.append(str(document.id))
+        
+        simulate_progress_delay(2.0, 4.0)
+        
+        # Stage 4: Format output
+        progress.update(85, "Formatting output...", "4/5")
+        
+        # Generate files if requested
+        doc_generator = DocumentGenerationService()
+        file_paths = []
+        
+        for document_id in document_ids:
+            document = GeneratedDocument.objects.get(id=document_id)
+            
+            for format_type in output_formats:
+                if format_type == 'pdf':
+                    file_path = doc_generator.generate_pdf(document.content, document.document_type)
+                elif format_type == 'docx':
+                    file_path = doc_generator.generate_docx(document.content, document.document_type)
+                else:
+                    continue
+                    
+                if file_path:
+                    file_paths.append(file_path)
+        
+        simulate_progress_delay(1.0, 2.0)
+        
+        # Stage 5: Finalize
+        progress.update(95, "Finalizing documents...", "5/5")
+        
+        # Store document IDs in session for download
+        from django.contrib.sessions.models import Session
+        from django.contrib.sessions.backends.db import SessionStore
+        try:
+            session_store = SessionStore(session_key=session_key)
+            session_data = session_store.load()
+            session_data['generated_document_ids'] = document_ids
+            session_store.save()
+        except Exception as e:
+            logger.warning(f"Could not save to session: {e}")
+        
+        # Complete
+        progress.complete("Document generation completed!")
+        
+    except Exception as e:
+        logger.error(f"Error in background document generation: {e}")
+        progress.set_error(f"Failed to generate documents: {str(e)}")
 
 
 # API Views for AJAX functionality

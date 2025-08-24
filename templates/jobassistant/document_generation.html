@@ -1,0 +1,303 @@
+{% extends 'jobassistant/base.html' %}
+{% load static %}
+
+{% block title %}Generate Documents - AutoCraftCV{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-magic"></i> Generate Tailored Documents
+                    </h3>
+                    <small>Create personalized cover letters and resumes for your job application</small>
+                </div>
+                
+                <div class="card-body">
+                    {% if job_posting and user_profile %}
+                        <!-- Job and Profile Summary -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-primary">
+                                            <i class="fas fa-briefcase"></i> Target Job
+                                        </h6>
+                                        <h5>{{ job_posting.title }}</h5>
+                                        <p class="text-muted mb-1">{{ job_posting.company }}</p>
+                                        <p class="text-muted">{{ job_posting.location }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-success">
+                                            <i class="fas fa-user"></i> Your Profile
+                                        </h6>
+                                        <h5>{{ user_profile.full_name }}</h5>
+                                        <p class="text-muted mb-1">{{ user_profile.email }}</p>
+                                        <p class="text-muted">{{ user_profile.experience_level|title }} Level</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Document Generation Form -->
+                        <form id="documentGenerationForm" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="job_id" value="{{ job_posting.id }}">
+                            
+                            <!-- Document Types -->
+                            <div class="mb-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-file-alt"></i> Document Types
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="document_types" value="cover_letter" id="coverLetter" checked>
+                                            <label class="form-check-label" for="coverLetter">
+                                                <i class="fas fa-envelope"></i> Cover Letter
+                                                <small class="text-muted d-block">Personalized introduction highlighting your fit</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="document_types" value="resume" id="tailoredResume" checked>
+                                            <label class="form-check-label" for="tailoredResume">
+                                                <i class="fas fa-file-user"></i> Tailored Resume
+                                                <small class="text-muted d-block">Resume optimized for this specific job</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Output Formats -->
+                            <div class="mb-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-download"></i> Output Formats
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="output_formats" value="pdf" id="pdfFormat" checked>
+                                            <label class="form-check-label" for="pdfFormat">
+                                                <i class="fas fa-file-pdf text-danger"></i> PDF Format
+                                                <small class="text-muted d-block">Professional, print-ready documents</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="output_formats" value="docx" id="wordFormat">
+                                            <label class="form-check-label" for="wordFormat">
+                                                <i class="fas fa-file-word text-primary"></i> Word Format
+                                                <small class="text-muted d-block">Editable documents for customization</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Custom Instructions -->
+                            <div class="mb-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-edit"></i> Custom Instructions
+                                    <small class="text-muted">(Optional)</small>
+                                </h5>
+                                <textarea name="custom_instructions" class="form-control" rows="3" 
+                                          placeholder="Add any specific requirements, keywords to include, or particular aspects to emphasize..."></textarea>
+                                <div class="form-text">
+                                    Examples: "Emphasize project management experience", "Include keywords: Python, machine learning", "Highlight remote work capabilities"
+                                </div>
+                            </div>
+
+                            <!-- Progress Container -->
+                            <div id="document-generation-progress" style="display: none;"></div>
+
+                            <!-- Generate Button -->
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg" data-original-text="Generate Documents">
+                                    <i class="fas fa-magic"></i> Generate Documents
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- AI Version Info -->
+                        <div class="mt-4">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>AI Generation:</strong>
+                                {% if request.session.app_version == 'paid' %}
+                                    Using premium AI (OpenAI GPT-4 / Anthropic Claude) for highest quality content generation.
+                                {% else %}
+                                    Using free AI tools (Hugging Face / Template-based) for content generation. 
+                                    <a href="{% url 'jobassistant:settings' %}" class="alert-link">Upgrade to paid version</a> for better results.
+                                {% endif %}
+                            </div>
+                        </div>
+
+                    {% else %}
+                        <!-- Missing Prerequisites -->
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h4>Prerequisites Missing</h4>
+                            <p class="text-muted mb-4">
+                                You need both a job posting and your profile to generate documents.
+                            </p>
+                            
+                            <div class="row justify-content-center">
+                                {% if not job_posting %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-link fa-2x text-primary mb-2"></i>
+                                                <h6>Add Job Posting</h6>
+                                                <a href="{% url 'jobassistant:home' %}" class="btn btn-primary btn-sm">
+                                                    Scrape Job URL
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if not user_profile %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-user fa-2x text-success mb-2"></i>
+                                                <h6>Add Your Profile</h6>
+                                                <a href="{% url 'jobassistant:home' %}" class="btn btn-success btn-sm">
+                                                    Upload Resume
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('documentGenerationForm');
+    if (form) {
+        new ProgressForm(form, {
+            progressContainer: document.getElementById('document-generation-progress'),
+            endpoint: '/api/generate-documents-with-progress/',
+            method: 'POST',
+            onSuccess: function(data) {
+                // Show success message and redirect to download page
+                showSuccessMessage('Documents generated successfully!');
+                setTimeout(() => {
+                    window.location.href = '{% url "jobassistant:download_documents" %}';
+                }, 2000);
+            },
+            onError: function(data) {
+                showErrorMessage(data.error || 'Failed to generate documents');
+            }
+        });
+
+        // Show progress container when form is submitted
+        form.addEventListener('submit', function() {
+            document.getElementById('document-generation-progress').style.display = 'block';
+        });
+    }
+
+    // Form validation
+    function validateForm() {
+        const documentTypes = document.querySelectorAll('input[name="document_types"]:checked');
+        const outputFormats = document.querySelectorAll('input[name="output_formats"]:checked');
+        
+        if (documentTypes.length === 0) {
+            showErrorMessage('Please select at least one document type');
+            return false;
+        }
+        
+        if (outputFormats.length === 0) {
+            showErrorMessage('Please select at least one output format');
+            return false;
+        }
+        
+        return true;
+    }
+
+    // Add validation to form
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    function showSuccessMessage(message) {
+        showMessage(message, 'success');
+    }
+
+    function showErrorMessage(message) {
+        showMessage(message, 'danger');
+    }
+
+    function showMessage(message, type) {
+        // Remove existing message
+        const existing = document.getElementById('form-message');
+        if (existing) {
+            existing.remove();
+        }
+
+        // Create new message
+        const messageEl = document.createElement('div');
+        messageEl.id = 'form-message';
+        messageEl.className = `alert alert-${type} alert-dismissible fade show`;
+        messageEl.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        // Insert at top of form
+        if (form) {
+            form.insertBefore(messageEl, form.firstChild);
+        }
+    }
+
+    // Real-time form updates
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateFormPreview);
+    });
+
+    function updateFormPreview() {
+        const selectedDocs = Array.from(document.querySelectorAll('input[name="document_types"]:checked'))
+            .map(cb => cb.value);
+        const selectedFormats = Array.from(document.querySelectorAll('input[name="output_formats"]:checked'))
+            .map(cb => cb.value);
+
+        // Update button text
+        const button = form.querySelector('button[type="submit"]');
+        if (button && selectedDocs.length > 0) {
+            const docCount = selectedDocs.length;
+            const formatCount = selectedFormats.length;
+            const totalFiles = docCount * Math.max(formatCount, 1);
+            
+            button.innerHTML = `<i class="fas fa-magic"></i> Generate ${totalFiles} Document${totalFiles > 1 ? 's' : ''}`;
+        }
+    }
+
+    // Initialize preview
+    updateFormPreview();
+});
+</script>
+{% endblock %}

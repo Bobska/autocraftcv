@@ -18,12 +18,26 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import FileResponse
+from django.views.generic import RedirectView
+import os
+
+def favicon_view(request):
+    """Serve favicon"""
+    favicon_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'favicon.svg')
+    if os.path.exists(favicon_path):
+        return FileResponse(open(favicon_path, 'rb'), content_type='image/svg+xml')
+    else:
+        # Fallback to redirect
+        return RedirectView.as_view(url='/static/images/favicon.svg', permanent=True)(request)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('favicon.ico', favicon_view, name='favicon'),
     path('', include('jobassistant.urls')),
 ]
 
-# Serve media files in development
+# Serve media and static files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -9,6 +9,9 @@ import uuid
 from django.core.cache import cache
 from django.conf import settings
 from typing import Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ProgressTracker:
@@ -60,8 +63,32 @@ class ProgressTracker:
             **self.additional_data  # Include any additional data
         }
         
-        # Cache for 10 minutes
-        cache.set(f'progress_{self.task_id}', progress_data, timeout=600)
+        # Cache for 30 minutes (extended for longer operations)
+        cache.set(f'progress_{self.task_id}', progress_data, timeout=1800)
+        
+        # Also store in database as backup
+        try:
+            from .models import ProgressTask
+            task, created = ProgressTask.objects.get_or_create(
+                task_id=self.task_id,
+                defaults={
+                    'task_type': 'other',
+                    'progress': progress,
+                    'status_message': self.status,
+                    'stage': self.stage,
+                    'error_message': self.error_message,
+                    'additional_data': self.additional_data
+                }
+            )
+            if not created:
+                task.update_progress(progress, self.status, self.stage)
+                if self.error_message:
+                    task.mark_failed(self.error_message)
+                elif progress >= 100:
+                    task.mark_completed(self.status)
+        except Exception as e:
+            logger.warning(f"Failed to store progress in database: {e}")
+        
         return progress_data
     
     def complete(self, status: str = "Complete!", additional_data: Optional[Dict[str, Any]] = None):
@@ -78,8 +105,24 @@ class ProgressTracker:
     
     @classmethod
     def get_progress(cls, task_id: str) -> Optional[Dict[str, Any]]:
-        """Get current progress for a task"""
-        return cache.get(f'progress_{task_id}')
+        """Get current progress for a task (try cache first, then database)"""
+        # Try cache first
+        progress_data = cache.get(f'progress_{task_id}')
+        if progress_data:
+            return progress_data
+        
+        # Fallback to database
+        try:
+            from .models import ProgressTask
+            task = ProgressTask.objects.get(task_id=task_id)
+            progress_data = task.to_dict()
+            
+            # Restore to cache
+            cache.set(f'progress_{task_id}', progress_data, timeout=1800)
+            return progress_data
+        except Exception as e:
+            logger.debug(f"Progress not found in database for task {task_id}: {e}")
+            return None
     
     @classmethod
     def cleanup_progress(cls, task_id: str):

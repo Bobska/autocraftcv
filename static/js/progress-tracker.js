@@ -9,7 +9,7 @@ class ProgressTracker {
         this.defaultOptions = {
             pollInterval: 2000, // 2 seconds
             maxRetries: 3,
-            timeout: 300000 // 5 minutes
+            timeout: 600000 // 10 minutes (increased for longer operations)
         };
     }
 

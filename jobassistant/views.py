@@ -578,7 +578,6 @@ def about(request):
 
 # Progress Tracking API Views
 @csrf_exempt
-@csrf_exempt
 def get_progress(request, task_id):
     """Get current progress for a task"""
     try:

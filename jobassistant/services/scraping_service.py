@@ -17,6 +17,7 @@ from django.conf import settings
 import logging
 from .enhanced_scraping_service import EnhancedJobScrapingService
 from .anti_detection_scraper import AntiDetectionScraper, SEEKSpecificScraper
+from .linkedin_scraper import LinkedInJobScraper
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ class JobScrapingService:
         self.enhanced_scraper = EnhancedJobScrapingService()
         self.anti_detection_scraper = AntiDetectionScraper()
         self.seek_scraper = SEEKSpecificScraper()
+        self.linkedin_scraper = LinkedInJobScraper()
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -40,6 +42,25 @@ class JobScrapingService:
         Returns: (job_data_dict, method_used)
         """
         logger.info(f"Starting comprehensive job scraping for URL: {url}")
+        
+        # Special handling for LinkedIn URLs
+        if 'linkedin.com/jobs' in url.lower():
+            logger.info("Detected LinkedIn URL, using specialized LinkedIn scraper")
+            try:
+                job_data, method = self.linkedin_scraper.scrape_linkedin_job(url)
+                
+                # Check if manual entry is required
+                if job_data.get('requires_manual_entry'):
+                    logger.warning("LinkedIn scraper requires manual fallback")
+                    return job_data, method
+                
+                if self._validate_job_data(job_data):
+                    logger.info(f"Successfully scraped LinkedIn job with method: {method}")
+                    return job_data, method
+                else:
+                    logger.warning("LinkedIn scraper returned insufficient data, trying enhanced scraper as fallback")
+            except Exception as e:
+                logger.error(f"LinkedIn scraper failed: {str(e)}, trying enhanced scraper as fallback")
         
         # Tier 1: Try enhanced scraper first (fastest)
         try:
@@ -113,7 +134,7 @@ class JobScrapingService:
             return False
         
         # Check for manual entry requirements
-        if job_data.get('manual_entry_required') or job_data.get('requires_manual_fallback'):
+        if job_data.get('manual_entry_required') or job_data.get('requires_manual_entry') or job_data.get('requires_manual_fallback'):
             return False
         
         # Check for meaningful title and company
@@ -126,7 +147,9 @@ class JobScrapingService:
                     'not available' not in title.lower() and 
                     'extraction failed' not in title.lower() and
                     'manual entry required' not in title.lower() and
-                    'manual review required' not in title.lower())
+                    'manual review required' not in title.lower() and
+                    'authentication required' not in title.lower() and
+                    'rate limited' not in title.lower())
         
         has_company = (company and 
                       len(company) > 2 and 
@@ -134,7 +157,9 @@ class JobScrapingService:
                       'unknown' not in company.lower() and
                       'extraction failed' not in company.lower() and
                       'manual entry required' not in company.lower() and
-                      'manual review required' not in company.lower())
+                      'manual review required' not in company.lower() and
+                      'linkedin login required' not in company.lower() and
+                      'linkedin rate limited' not in company.lower())
         
         return has_title or has_company
     

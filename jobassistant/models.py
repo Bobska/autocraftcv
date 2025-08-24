@@ -19,6 +19,7 @@ class JobPosting(models.Model):
     responsibilities = models.TextField(blank=True)
     salary_range = models.CharField(max_length=100, blank=True)
     employment_type = models.CharField(max_length=50, blank=True)
+    application_instructions = models.TextField(blank=True)  # Special application instructions (e.g., email requirements)
     
     # Metadata
     scraped_at = models.DateTimeField(default=timezone.now)

@@ -71,64 +71,34 @@ def scrape_job_url(request):
                 app_version = getattr(settings, 'APP_VERSION', 'free')
                 use_paid = app_version == 'paid'
                 
-                # Try enhanced scraping for protected sites first
-                if is_protected_site:
-                    try:
-                        from .services.anti_detection_scraper import AntiDetectionScraper
-                        
-                        anti_scraper = AntiDetectionScraper()
-                        job_data, method_used = anti_scraper.scrape_protected_site(url)
-                        
-                        if job_data and job_data.get('title') and job_data.get('title') != 'Job Title Not Available':
-                            # Create job posting with enhanced data
-                            job_posting = JobPosting.objects.create(
-                                url=url,
-                                title=job_data.get('title', ''),
-                                company=job_data.get('company', ''),
-                                location=job_data.get('location', ''),
-                                description=job_data.get('description', ''),
-                                requirements=job_data.get('requirements', ''),
-                                qualifications=job_data.get('qualifications', ''),
-                                responsibilities=job_data.get('responsibilities', ''),
-                                salary_range=job_data.get('salary_range', ''),
-                                employment_type=job_data.get('employment_type', ''),
-                                raw_content=job_data.get('raw_content', ''),
-                                scraping_method='anti_detection',
-                                extraction_method='anti_detection',
-                                site_domain=domain,
-                                needs_review=False
-                            )
-                            
-                            # Update session
-                            session.job_posting = job_posting
-                            session.status = 'success'
-                            session.method_used = 'anti_detection'
-                            session.completed_at = timezone.now()
-                            session.save()
-                            
-                            # Store job ID in session
-                            request.session['job_posting_id'] = str(job_posting.id)
-                            
-                            messages.success(request, f'Successfully scraped job posting with enhanced protection: {job_posting.title}')
-                            return redirect('jobassistant:job_details', job_id=job_posting.id)
-                        
-                        else:
-                            # Anti-detection failed, suggest manual entry
-                            messages.warning(request, 'This site has strong anti-bot protection. Please use manual entry to add this job.')
-                            return redirect(f'/manual-entry/?url={url}')
-                            
-                    except Exception as e:
-                        logger.warning(f"Anti-detection scraping failed for {url}: {str(e)}")
-                        # Fall back to regular scraping
-                
-                # Initialize regular scraping service
+                # Initialize enhanced scraping service
                 scraper = JobScrapingService(use_paid_apis=use_paid)
                 
-                # Scrape the job
+                # Scrape the job using the comprehensive service
                 job_data, method_used = scraper.scrape_job(url)
                 
-                if job_data and job_data.get('title') and job_data.get('title') != 'Job Title Not Available':
-                    # Create job posting
+                # Check if manual entry is required
+                if (job_data.get('requires_manual_entry') or 
+                    job_data.get('manual_entry_required') or 
+                    method_used in ['linkedin_auth_required', 'linkedin_rate_limited', 'linkedin_failed']):
+                    
+                    session.status = 'failed'
+                    session.error_message = job_data.get('fallback_message', 'Manual entry required')
+                    session.completed_at = timezone.now()
+                    session.save()
+                    
+                    # Provide specific guidance based on the failure type
+                    if 'auth' in method_used:
+                        messages.warning(request, 'LinkedIn requires login to view this job. Please use manual entry to add the job details.')
+                    elif 'rate' in method_used:
+                        messages.warning(request, 'LinkedIn is temporarily blocking requests. Please try again later or use manual entry.')
+                    else:
+                        messages.warning(request, 'Could not automatically extract job information. Please use manual entry to add this job.')
+                    
+                    return redirect(f'/manual-entry/?url={url}')
+                
+                if job_data and job_data.get('title') and job_data.get('title') not in ['Job Title Not Available', 'Extraction Failed', 'Authentication Required', 'Rate Limited']:
+                    # Create job posting with comprehensive data
                     job_posting = JobPosting.objects.create(
                         url=url,
                         title=job_data.get('title', ''),
@@ -140,11 +110,12 @@ def scrape_job_url(request):
                         responsibilities=job_data.get('responsibilities', ''),
                         salary_range=job_data.get('salary_range', ''),
                         employment_type=job_data.get('employment_type', ''),
+                        application_instructions=job_data.get('application_instructions', ''),
                         raw_content=job_data.get('raw_content', ''),
                         scraping_method=method_used,
-                        extraction_method='standard',
+                        extraction_method=method_used.split('_')[0] if '_' in method_used else method_used,
                         site_domain=domain,
-                        needs_review=False
+                        needs_review=method_used.startswith('fallback')
                     )
                     
                     # Update session
@@ -157,12 +128,19 @@ def scrape_job_url(request):
                     # Store job ID in session
                     request.session['job_posting_id'] = str(job_posting.id)
                     
-                    messages.success(request, f'Successfully scraped job posting: {job_posting.title}')
+                    # Provide feedback based on scraping method
+                    if method_used.startswith('linkedin'):
+                        messages.success(request, f'Successfully scraped LinkedIn job: {job_posting.title}')
+                    elif method_used.startswith('anti_detection'):
+                        messages.success(request, f'Successfully scraped job with enhanced protection: {job_posting.title}')
+                    else:
+                        messages.success(request, f'Successfully scraped job posting: {job_posting.title}')
+                    
                     return redirect('jobassistant:job_details', job_id=job_posting.id)
                     
                 else:
                     session.status = 'failed'
-                    session.error_message = 'Could not extract job information from URL'
+                    session.error_message = 'Could not extract meaningful job information from URL'
                     session.completed_at = timezone.now()
                     session.save()
                     

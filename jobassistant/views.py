@@ -502,6 +502,7 @@ def about(request):
 
 # Progress Tracking API Views
 @csrf_exempt
+@csrf_exempt
 def get_progress(request, task_id):
     """Get current progress for a task"""
     progress_data = ProgressTracker.get_progress(task_id)
@@ -518,11 +519,20 @@ def scrape_job_with_progress(request):
         return JsonResponse({'error': 'POST method required'}, status=405)
     
     try:
-        data = json.loads(request.body)
-        job_url = data.get('url', '').strip()
+        # Handle both JSON and form data
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            job_url = data.get('url', '').strip()
+        else:
+            # Handle form data (FormData from JavaScript)
+            job_url = request.POST.get('url', '').strip()
         
         if not job_url:
             return JsonResponse({'error': 'URL is required'}, status=400)
+        
+        # Ensure session exists
+        if not request.session.session_key:
+            request.session.create()
         
         # Generate task ID
         task_id = str(uuid.uuid4())
@@ -541,7 +551,7 @@ def scrape_job_with_progress(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         logger.error(f"Error starting job scraping: {e}")
-        return JsonResponse({'error': 'Internal server error'}, status=500)
+        return JsonResponse({'error': f'Internal server error: {str(e)}'}, status=500)
 
 
 def _scrape_job_background(task_id, job_url, session_key):
@@ -609,6 +619,7 @@ def _scrape_job_background(task_id, job_url, session_key):
 
 
 @csrf_exempt
+@csrf_exempt
 def parse_resume_with_progress(request):
     """Parse resume with real-time progress tracking"""
     if request.method != 'POST':
@@ -618,6 +629,10 @@ def parse_resume_with_progress(request):
         return JsonResponse({'error': 'No file uploaded'}, status=400)
     
     uploaded_file = request.FILES['resume_file']
+    
+    # Ensure session exists
+    if not request.session.session_key:
+        request.session.create()
     
     # Generate task ID
     task_id = str(uuid.uuid4())

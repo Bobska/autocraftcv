@@ -95,7 +95,13 @@ class ProgressTracker {
             fetch(`/api/progress/${taskId}/`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+                        if (response.status === 404) {
+                            throw new Error(`Task ${taskId} not found - it may have expired or been cleaned up`);
+                        } else if (response.status === 500) {
+                            throw new Error(`Server error - please try again later`);
+                        } else {
+                            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+                        }
                     }
                     return response.json();
                 })
@@ -117,6 +123,20 @@ class ProgressTracker {
                 })
                 .catch(error => {
                     console.error('Progress polling error:', error);
+                    
+                    // Special handling for 404 errors (task not found)
+                    if (error.message.includes('not found') || error.message.includes('404')) {
+                        this.stopPolling(taskId);
+                        if (config.onError) {
+                            config.onError({
+                                error: 'Task not found',
+                                details: error.message,
+                                is404: true
+                            });
+                        }
+                        return;
+                    }
+                    
                     retryCount++;
                     
                     if (retryCount >= config.maxRetries) {

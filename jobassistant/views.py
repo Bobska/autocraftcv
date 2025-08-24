@@ -579,11 +579,95 @@ def about(request):
 @csrf_exempt
 def get_progress(request, task_id):
     """Get current progress for a task"""
-    progress_data = ProgressTracker.get_progress(task_id)
-    if progress_data:
-        return JsonResponse(progress_data)
-    else:
-        return JsonResponse({'error': 'Task not found'}, status=404)
+    try:
+        progress_data = ProgressTracker.get_progress(task_id)
+        if progress_data:
+            return JsonResponse(progress_data)
+        else:
+            # Log for debugging
+            logger.warning(f"Progress data not found for task_id: {task_id}")
+            return JsonResponse({
+                'error': 'Task not found',
+                'message': 'This task may have expired, been completed, or never existed',
+                'task_id': task_id
+            }, status=404)
+    except Exception as e:
+        logger.error(f"Error getting progress for task {task_id}: {str(e)}")
+        return JsonResponse({
+            'error': 'Server error',
+            'message': 'An error occurred while retrieving progress data'
+        }, status=500)
+
+
+@csrf_exempt
+def debug_progress(request):
+    """Debug endpoint to check active progress tasks"""
+    try:
+        from django.core.cache import cache
+        
+        # Try to get some info about cache
+        cache_info = {
+            'backend': str(type(cache)),
+            'sample_keys': []
+        }
+        
+        # Try to access cache keys if possible
+        try:
+            # Test with a known pattern
+            test_keys = []
+            for i in range(5):  # Check a few test task IDs
+                test_id = f'test-task-{i}'
+                if cache.get(f'progress_{test_id}'):
+                    test_keys.append(f'progress_{test_id}')
+            
+            cache_info['test_keys_found'] = test_keys
+            cache_info['message'] = 'Cache is accessible'
+        except Exception as cache_error:
+            cache_info['message'] = f'Cache access error: {str(cache_error)}'
+        
+        return JsonResponse({
+            'status': 'ok',
+            'cache_info': cache_info,
+            'server_time': timezone.now().isoformat()
+        })
+    except Exception as e:
+        return JsonResponse({
+            'error': 'Debug error',
+            'details': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+def create_test_progress(request):
+    """Create a test progress task for debugging"""
+    try:
+        # Create a test progress tracker
+        test_id = 'a3ace1c3-1dec-49a2-9e1d-37f7cb374b3b'  # Use the failing ID
+        tracker = ProgressTracker(task_id=test_id, total_steps=6)
+        
+        # Simulate some progress
+        progress_data = tracker.update(
+            step=3,
+            status="Test progress data created",
+            stage="3/6"
+        )
+        
+        return JsonResponse({
+            'status': 'Test progress created',
+            'task_id': test_id,
+            'progress_data': progress_data,
+            'message': f'You can now test /api/progress/{test_id}/'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'error': 'Failed to create test progress',
+            'details': str(e)
+        }, status=500)
+
+
+def progress_test_page(request):
+    """Test page for progress tracking functionality"""
+    return render(request, 'jobassistant/progress_test.html')
 
 
 @csrf_exempt

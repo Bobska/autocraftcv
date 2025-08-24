@@ -10,30 +10,32 @@ class JobPosting(models.Model):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     url = models.URLField(max_length=2000)
-    title = models.CharField(max_length=200, blank=True)
-    company = models.CharField(max_length=200, blank=True)
-    location = models.CharField(max_length=200, blank=True)
-    description = models.TextField(blank=True)
-    requirements = models.TextField(blank=True)
-    qualifications = models.TextField(blank=True)
-    responsibilities = models.TextField(blank=True)
-    salary_range = models.CharField(max_length=100, blank=True)
-    employment_type = models.CharField(max_length=50, blank=True)
-    application_instructions = models.TextField(blank=True)  # Special application instructions (e.g., email requirements)
+    title = models.CharField(max_length=200, blank=True, null=True)  # Allow null values
+    company = models.CharField(max_length=200, blank=True, null=True)  # Allow null values
+    location = models.CharField(max_length=200, blank=True, null=True)  # Allow null values - FIX for constraint error
+    description = models.TextField(blank=True, null=True)  # Allow null values
+    requirements = models.TextField(blank=True, null=True)  # Allow null values
+    qualifications = models.TextField(blank=True, null=True)  # Allow null values
+    responsibilities = models.TextField(blank=True, null=True)  # Allow null values
+    salary_range = models.CharField(max_length=100, blank=True, null=True)  # Allow null values
+    employment_type = models.CharField(max_length=50, blank=True, null=True)  # Allow null values
+    application_instructions = models.TextField(blank=True, null=True)  # Allow null values
     
     # Metadata
     scraped_at = models.DateTimeField(default=timezone.now)
-    raw_content = models.TextField(blank=True)  # Store raw HTML/text
+    raw_content = models.TextField(blank=True, null=True)  # Allow null values
     scraping_method = models.CharField(max_length=50, default='beautifulsoup')  # beautifulsoup, selenium, api
-    extraction_method = models.CharField(max_length=100, blank=True)  # Enhanced tracking
-    site_domain = models.CharField(max_length=100, blank=True)  # Source site
+    extraction_method = models.CharField(max_length=100, blank=True, null=True)  # Allow null values
+    site_domain = models.CharField(max_length=100, blank=True, null=True)  # Allow null values
     needs_review = models.BooleanField(default=False)  # Manual review required
     
     class Meta:
         ordering = ['-scraped_at']
     
     def __str__(self):
-        return f"{self.title} at {self.company}" if self.title and self.company else f"Job {self.id}"
+        title = self.title or 'No Title'
+        company = self.company or 'Unknown Company'
+        return f"{title} at {company}"
 
 
 class UserProfile(models.Model):

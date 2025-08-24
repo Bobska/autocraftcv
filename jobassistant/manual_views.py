@@ -15,6 +15,7 @@ from urllib.parse import unquote
 from .models import JobPosting
 from .services.ai_content_parser import AIJobContentParser
 from .services.anti_detection_scraper import SEEKSpecificScraper
+from .safe_data_utils import get_safe_job_data_for_save, clean_job_data
 
 logger = logging.getLogger(__name__)
 
@@ -68,21 +69,27 @@ def handle_manual_job_submission(request):
         parser = AIJobContentParser()
         parsed_job = parser.parse_job_content(job_content, job_url)
         
-        # Save to database
-        job = JobPosting.objects.create(
-            url=job_url or 'manual_entry',
-            title=parsed_job.get('title', 'AI Parsed Title'),
-            company=parsed_job.get('company', 'AI Parsed Company'), 
-            location=parsed_job.get('location', 'AI Parsed Location'),
-            description=parsed_job.get('description', job_content[:2000]),
-            requirements=parsed_job.get('requirements', 'Requirements Not Specified'),
-            responsibilities=parsed_job.get('responsibilities', ''),
-            salary_range=parsed_job.get('salary_range', ''),
-            employment_type=parsed_job.get('employment_type', ''),
-            extraction_method='manual_ai_parsing',
-            raw_content=job_content,
-            needs_review=parsed_job.get('needs_review', False)
-        )
+        # Prepare data for safe saving
+        job_data = {
+            'url': job_url or 'manual_entry',
+            'title': parsed_job.get('title', 'AI Parsed Title'),
+            'company': parsed_job.get('company', 'AI Parsed Company'), 
+            'location': parsed_job.get('location', 'AI Parsed Location'),
+            'description': parsed_job.get('description', job_content[:2000]),
+            'requirements': parsed_job.get('requirements', 'Requirements Not Specified'),
+            'responsibilities': parsed_job.get('responsibilities', ''),
+            'salary_range': parsed_job.get('salary_range', ''),
+            'employment_type': parsed_job.get('employment_type', ''),
+            'extraction_method': 'manual_ai_parsing',
+            'raw_content': job_content,
+            'needs_review': parsed_job.get('needs_review', False)
+        }
+        
+        # Get safe data for saving
+        safe_data = get_safe_job_data_for_save(job_data, job_url or 'manual_entry', 'manual_ai_parsing')
+        
+        # Save to database with safe data
+        job = JobPosting.objects.create(**safe_data)
         
         logger.info(f"Successfully created job posting with ID: {job.id}")
         logger.info(f"AI parsing quality: {parsed_job.get('extraction_quality', 'unknown')}")
@@ -158,21 +165,27 @@ def enhanced_scrape_job(request):
             })
         
         # Save successful extraction
-        job = JobPosting.objects.create(
-            url=job_url,
-            title=job_data.get('title', 'Title Not Available'),
-            company=job_data.get('company', 'Company Not Available'),
-            location=job_data.get('location', 'Location Not Available'),
-            description=job_data.get('description', 'Description Not Available'),
-            requirements=job_data.get('requirements', ''),
-            responsibilities=job_data.get('responsibilities', ''),
-            salary_range=job_data.get('salary_range', ''),
-            employment_type=job_data.get('employment_type', ''),
-            extraction_method=method,
-            raw_content=job_data.get('raw_content', '')[:10000],
-            site_domain=job_data.get('site_domain', ''),
-            needs_review=False
-        )
+        job_data_dict = {
+            'url': job_url,
+            'title': job_data.get('title', 'Title Not Available'),
+            'company': job_data.get('company', 'Company Not Available'),
+            'location': job_data.get('location', 'Location Not Available'),
+            'description': job_data.get('description', 'Description Not Available'),
+            'requirements': job_data.get('requirements', ''),
+            'responsibilities': job_data.get('responsibilities', ''),
+            'salary_range': job_data.get('salary_range', ''),
+            'employment_type': job_data.get('employment_type', ''),
+            'extraction_method': method,
+            'raw_content': job_data.get('raw_content', '')[:10000],
+            'site_domain': job_data.get('site_domain', ''),
+            'needs_review': False
+        }
+        
+        # Get safe data for saving
+        safe_data = get_safe_job_data_for_save(job_data_dict, job_url, method)
+        
+        # Create job posting with safe data
+        job = JobPosting.objects.create(**safe_data)
         
         logger.info(f"Successfully scraped and saved job with ID: {job.id}")
         

@@ -29,6 +29,7 @@ from .utils import (
     AIGenerationProgress,
     simulate_progress_delay
 )
+from .safe_data_utils import get_safe_job_data_for_save, clean_job_data
 from .services.content_generation_service import ContentGenerationService
 from .services.document_generation_service import DocumentGenerationService
 
@@ -98,45 +99,45 @@ def scrape_job_url(request):
                     return redirect(f'/manual-entry/?url={url}')
                 
                 if job_data and job_data.get('title') and job_data.get('title') not in ['Job Title Not Available', 'Extraction Failed', 'Authentication Required', 'Rate Limited']:
-                    # Create job posting with comprehensive data
-                    job_posting = JobPosting.objects.create(
-                        url=url,
-                        title=job_data.get('title', ''),
-                        company=job_data.get('company', ''),
-                        location=job_data.get('location', ''),
-                        description=job_data.get('description', ''),
-                        requirements=job_data.get('requirements', ''),
-                        qualifications=job_data.get('qualifications', ''),
-                        responsibilities=job_data.get('responsibilities', ''),
-                        salary_range=job_data.get('salary_range', ''),
-                        employment_type=job_data.get('employment_type', ''),
-                        application_instructions=job_data.get('application_instructions', ''),
-                        raw_content=job_data.get('raw_content', ''),
-                        scraping_method=method_used,
-                        extraction_method=method_used.split('_')[0] if '_' in method_used else method_used,
-                        site_domain=domain,
-                        needs_review=method_used.startswith('fallback')
-                    )
-                    
-                    # Update session
-                    session.job_posting = job_posting
-                    session.status = 'success'
-                    session.method_used = method_used
-                    session.completed_at = timezone.now()
-                    session.save()
-                    
-                    # Store job ID in session
-                    request.session['job_posting_id'] = str(job_posting.id)
-                    
-                    # Provide feedback based on scraping method
-                    if method_used.startswith('linkedin'):
-                        messages.success(request, f'Successfully scraped LinkedIn job: {job_posting.title}')
-                    elif method_used.startswith('anti_detection'):
-                        messages.success(request, f'Successfully scraped job with enhanced protection: {job_posting.title}')
-                    else:
-                        messages.success(request, f'Successfully scraped job posting: {job_posting.title}')
-                    
-                    return redirect('jobassistant:job_details', job_id=job_posting.id)
+                    try:
+                        # Use safe data utilities to prevent NOT NULL constraint errors
+                        safe_job_data = get_safe_job_data_for_save(job_data, url, method_used)
+                        
+                        # Create job posting with safe data
+                        job_posting = JobPosting.objects.create(**safe_job_data)
+                        
+                        # Update session
+                        session.job_posting = job_posting
+                        session.status = 'success'
+                        session.method_used = method_used
+                        session.completed_at = timezone.now()
+                        session.save()
+                        
+                        # Store job ID in session
+                        request.session['job_posting_id'] = str(job_posting.id)
+                        
+                        # Provide feedback based on scraping method
+                        if method_used.startswith('linkedin'):
+                            messages.success(request, f'Successfully scraped LinkedIn job: {job_posting.title or "Unknown Job"}')
+                        elif method_used.startswith('anti_detection'):
+                            messages.success(request, f'Successfully scraped job with enhanced protection: {job_posting.title or "Unknown Job"}')
+                        else:
+                            messages.success(request, f'Successfully scraped job posting: {job_posting.title or "Unknown Job"}')
+                        
+                        return redirect('jobassistant:job_details', job_id=job_posting.id)
+                        
+                    except Exception as e:
+                        logger.error(f"Error saving job posting: {str(e)}")
+                        logger.error(f"Job data: {job_data}")
+                        
+                        # Update session with error
+                        session.status = 'failed'
+                        session.error_message = f'Database error: {str(e)}'
+                        session.completed_at = timezone.now()
+                        session.save()
+                        
+                        messages.error(request, f'Error saving job posting: {str(e)}. Please try manual entry.')
+                        return redirect(f'/manual-entry/?url={url}')
                     
                 else:
                     session.status = 'failed'
@@ -955,8 +956,8 @@ def check_scraping_status(request, session_id):
         
         if session.job_posting:
             data['job_posting_id'] = str(session.job_posting.id)
-            data['job_title'] = session.job_posting.title
-            data['company'] = session.job_posting.company
+            data['job_title'] = session.job_posting.title or 'Unknown Job'
+            data['company'] = session.job_posting.company or 'Unknown Company'
         
         return JsonResponse(data)
     except ScrapingSession.DoesNotExist:

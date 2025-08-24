@@ -126,14 +126,40 @@ class ProgressTracker {
                     
                     // Special handling for 404 errors (task not found)
                     if (error.message.includes('not found') || error.message.includes('404')) {
-                        this.stopPolling(taskId);
-                        if (config.onError) {
-                            config.onError({
-                                error: 'Task not found',
-                                details: error.message,
-                                is404: true
+                        // Try recovery before giving up
+                        fetch(`/api/recover-progress/${taskId}/`)
+                            .then(response => response.json())
+                            .then(recoveryData => {
+                                if (recoveryData.status === 'found' || recoveryData.status === 'recovered') {
+                                    console.log('Progress recovery successful:', recoveryData);
+                                    // Update with recovery data
+                                    this.updateProgress(taskId, recoveryData.progress_data, config);
+                                    return;
+                                }
+                                
+                                // Still failed, stop polling
+                                this.stopPolling(taskId);
+                                if (config.onError) {
+                                    config.onError({
+                                        error: 'Task not found',
+                                        details: error.message + '. Recovery also failed.',
+                                        is404: true,
+                                        recovery_attempted: true
+                                    });
+                                }
+                            })
+                            .catch(recoveryError => {
+                                console.error('Progress recovery failed:', recoveryError);
+                                this.stopPolling(taskId);
+                                if (config.onError) {
+                                    config.onError({
+                                        error: 'Task not found',
+                                        details: error.message + '. Recovery failed: ' + recoveryError.message,
+                                        is404: true,
+                                        recovery_attempted: true
+                                    });
+                                }
                             });
-                        }
                         return;
                     }
                     

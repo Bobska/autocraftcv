@@ -12,6 +12,8 @@ import time
 import uuid
 import threading
 import logging
+import requests
+from bs4 import BeautifulSoup
 
 from .models import JobPosting, UserProfile, GeneratedDocument, ScrapingSession
 from .forms import (
@@ -665,6 +667,42 @@ def create_test_progress(request):
         }, status=500)
 
 
+@csrf_exempt
+def recover_progress(request, task_id):
+    """Attempt to recover progress for a failed task"""
+    try:
+        # Check if progress exists in cache
+        progress_data = ProgressTracker.get_progress(task_id)
+        
+        if progress_data:
+            return JsonResponse({
+                'status': 'found',
+                'progress_data': progress_data,
+                'message': 'Progress data found in cache'
+            })
+        
+        # If not in cache, try to create minimal progress for debugging
+        tracker = ProgressTracker(task_id=task_id, total_steps=6)
+        recovery_data = tracker.update(
+            step=1,
+            status="Progress recovery - task may have failed",
+            stage="1/6",
+            error="Task data lost, possible server restart or timeout"
+        )
+        
+        return JsonResponse({
+            'status': 'recovered',
+            'progress_data': recovery_data,
+            'message': 'Created recovery progress data for debugging'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'error': 'Recovery failed',
+            'details': str(e)
+        }, status=500)
+
+
 def progress_test_page(request):
     """Test page for progress tracking functionality"""
     return render(request, 'jobassistant/progress_test.html')
@@ -712,9 +750,79 @@ def scrape_job_with_progress(request):
         return JsonResponse({'error': f'Internal server error: {str(e)}'}, status=500)
 
 
+def _fallback_scrape(job_url):
+    """Simple fallback scraping method when main scraping fails"""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(job_url, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract basic job data
+        title = ""
+        # Try common title selectors
+        title_selectors = ['h1', '.job-title', '.jobTitle', '[data-testid="job-title"]', '.position-title']
+        for selector in title_selectors:
+            title_elem = soup.select_one(selector)
+            if title_elem and title_elem.get_text(strip=True):
+                title = title_elem.get_text(strip=True)
+                break
+        
+        # Extract company
+        company = ""
+        company_selectors = ['.company', '.company-name', '.employer', '[data-testid="company-name"]']
+        for selector in company_selectors:
+            company_elem = soup.select_one(selector)
+            if company_elem and company_elem.get_text(strip=True):
+                company = company_elem.get_text(strip=True)
+                break
+        
+        # Extract description (get main text content)
+        description = ""
+        text_content = soup.get_text(separator=' ', strip=True)
+        if len(text_content) > 100:
+            description = text_content[:2000]  # Limit to reasonable size
+        
+        job_data = {
+            'title': title or 'Job Title Not Found',
+            'company': company or 'Company Not Found', 
+            'location': '',
+            'description': description,
+            'requirements': '',
+            'qualifications': '',
+            'responsibilities': '',
+            'salary_range': '',
+            'employment_type': '',
+            'raw_content': str(soup)[:5000],  # Limit raw content size
+        }
+        
+        return job_data, 'fallback_basic'
+        
+    except Exception as e:
+        logger.error(f"Fallback scraping failed: {e}")
+        # Return minimal data to prevent complete failure
+        return {
+            'title': 'Unable to Extract Job Title',
+            'company': 'Unable to Extract Company',
+            'location': '',
+            'description': f'Failed to scrape job content from {job_url}',
+            'requirements': '',
+            'qualifications': '',
+            'responsibilities': '',
+            'salary_range': '',
+            'employment_type': '',
+            'raw_content': '',
+        }, 'fallback_minimal'
+
+
 def _scrape_job_background(task_id, job_url, session_key):
     """Background task for job scraping with progress updates"""
     progress = ProgressTracker(task_id)
+    scraper = None
     
     try:
         # Stage 1: Validate URL
@@ -723,17 +831,77 @@ def _scrape_job_background(task_id, job_url, session_key):
         
         # Stage 2: Initialize scraping service
         progress.update(15, "Fetching job page...", "2/6")
-        scraper = JobScrapingService()
-        simulate_progress_delay(1.0, 2.0)
+        
+        # Use timeout and resource limits for scraping
+        try:
+            scraper = JobScrapingService()
+            simulate_progress_delay(1.0, 2.0)
+        except Exception as e:
+            logger.error(f"Failed to initialize scraper: {e}")
+            progress.set_error(f"Failed to initialize scraper: {str(e)}")
+            return
         
         # Stage 3: Parse HTML content
         progress.update(35, "Parsing HTML content...", "3/6")
         simulate_progress_delay(1.5, 3.0)
         
-        # Stage 4: Extract job details
+        # Stage 4: Extract job details with timeout
         progress.update(60, "Extracting job details...", "4/6")
-        job_data, method_used = scraper.scrape_job(job_url)
+        
+        job_data = None
+        method_used = "unknown"
+        
+        try:
+            # Use a threaded approach with timeout for Windows compatibility
+            scraping_result = {'job_data': None, 'method_used': None, 'error': None}  # type: ignore
+            
+            def run_scraping():
+                try:
+                    data, method = scraper.scrape_job(job_url)
+                    scraping_result['job_data'] = data  # type: ignore
+                    scraping_result['method_used'] = method  # type: ignore
+                except Exception as e:
+                    scraping_result['error'] = e  # type: ignore
+            
+            # Start scraping in a separate thread
+            scraping_thread = threading.Thread(target=run_scraping)
+            scraping_thread.daemon = True
+            scraping_thread.start()
+            
+            # Wait for completion with timeout (5 minutes)
+            scraping_thread.join(timeout=300)
+            
+            if scraping_thread.is_alive():
+                # Scraping timed out
+                logger.error("Scraping operation timed out after 5 minutes")
+                raise TimeoutError("Scraping operation timed out")
+            
+            if scraping_result['error']:
+                raise scraping_result['error']
+            
+            job_data = scraping_result['job_data']
+            method_used = scraping_result['method_used'] or "unknown"
+            logger.info(f"Scraping completed using method: {method_used}")
+                    
+        except (TimeoutError, Exception) as scraping_error:
+            logger.error(f"Scraping failed: {scraping_error}")
+            # Try a fallback method if main scraping fails
+            try:
+                progress.update(65, "Trying fallback method...", "4/6")
+                # Simple fallback scraping with shorter timeout
+                job_data, method_used = _fallback_scrape(job_url)
+                logger.info(f"Fallback scraping succeeded using method: {method_used}")
+            except Exception as fallback_error:
+                logger.error(f"Fallback scraping also failed: {fallback_error}")
+                progress.set_error(f"All scraping methods failed. Main error: {str(scraping_error)}")
+                return
+        
         simulate_progress_delay(1.0, 2.0)
+        
+        # Validate that we got meaningful data
+        if not job_data or not job_data.get('title') or len(job_data.get('title', '').strip()) < 3:
+            progress.set_error("No meaningful job data could be extracted from this URL")
+            return
         
         # Stage 5: Process requirements
         progress.update(80, "Processing requirements...", "5/6")
@@ -742,21 +910,18 @@ def _scrape_job_background(task_id, job_url, session_key):
         # Stage 6: Save to database
         progress.update(95, "Saving job data...", "6/6")
         
-        # Create JobPosting instance
-        job_posting = JobPosting.objects.create(
-            url=job_url,
-            title=job_data.get('title', ''),
-            company=job_data.get('company', ''),
-            location=job_data.get('location', ''),
-            description=job_data.get('description', ''),
-            requirements=job_data.get('requirements', ''),
-            qualifications=job_data.get('qualifications', ''),
-            responsibilities=job_data.get('responsibilities', ''),
-            salary_range=job_data.get('salary_range', ''),
-            employment_type=job_data.get('employment_type', ''),
-            raw_content=job_data.get('raw_content', ''),
-            scraping_method=method_used
-        )
+        # Create JobPosting instance with safe data handling
+        try:
+            from .safe_data_utils import get_safe_job_data_for_save
+            safe_data = get_safe_job_data_for_save(job_data, job_url, method_used or "unknown")
+            
+            job_posting = JobPosting.objects.create(**safe_data)
+            logger.info(f"Successfully created job posting: {job_posting.title} (ID: {job_posting.id})")
+            
+        except Exception as db_error:
+            logger.error(f"Database save failed: {db_error}")
+            progress.set_error(f"Failed to save job data: {str(db_error)}")
+            return
         
         # Store job ID in session for retrieval
         from django.contrib.sessions.backends.db import SessionStore

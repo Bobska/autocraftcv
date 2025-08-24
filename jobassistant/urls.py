@@ -51,6 +51,7 @@ urlpatterns = [
     path('api/progress/<str:task_id>/', views.get_progress, name='get_progress'),
     path('api/progress-debug/', views.debug_progress, name='debug_progress'),
     path('api/create-test-progress/', views.create_test_progress, name='create_test_progress'),
+    path('api/recover-progress/<str:task_id>/', views.recover_progress, name='recover_progress'),
     path('api/scrape-with-progress/', views.scrape_job_with_progress, name='scrape_job_with_progress'),
     path('api/parse-resume-with-progress/', views.parse_resume_with_progress, name='parse_resume_with_progress'),
     path('api/generate-documents-with-progress/', views.generate_documents_with_progress, name='generate_documents_with_progress'),

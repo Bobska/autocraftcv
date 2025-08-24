@@ -1,0 +1,194 @@
+{% extends 'jobassistant/base.html' %}
+
+{% block title %}Download Documents - AutoCraftCV{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="text-center mb-5">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h2 class="text-success">Documents Generated Successfully!</h2>
+                <p class="lead text-muted">Your tailored cover letter and resume are ready for download.</p>
+            </div>
+
+            <div class="row">
+                {% for document in documents %}
+                <div class="col-md-6 mb-4">
+                    <div class="card feature-card h-100">
+                        <div class="card-header bg-{% if document.document_type == 'cover_letter' %}primary{% else %}success{% endif %} text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-{% if document.document_type == 'cover_letter' %}envelope{% else %}file-alt{% endif %}"></i>
+                                {{ document.document_type|title|replace:"_"," " }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">{{ document.title }}</h6>
+                            
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-robot"></i> Generated using: {{ document.generation_method|title }}
+                                </small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> Generation time: {{ document.generation_time|floatformat:1 }}s
+                                </small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar"></i> Created: {{ document.created_at|date:"M d, Y H:i" }}
+                                </small>
+                            </div>
+
+                            <!-- Document Preview -->
+                            <div class="document-preview mb-3">
+                                <h6>Preview:</h6>
+                                <div style="max-height: 200px; overflow-y: auto; font-size: 0.9em;">
+                                    {{ document.content|truncatewords:50|linebreaks }}
+                                </div>
+                            </div>
+
+                            <!-- Download Buttons -->
+                            <div class="d-grid gap-2">
+                                {% if document.pdf_file %}
+                                    <a href="{% url 'jobassistant:download_file' document.id 'pdf' %}" 
+                                       class="btn btn-danger" target="_blank">
+                                        <i class="fas fa-file-pdf"></i> Download PDF
+                                    </a>
+                                {% endif %}
+                                
+                                {% if document.docx_file %}
+                                    <a href="{% url 'jobassistant:download_file' document.id 'docx' %}" 
+                                       class="btn btn-primary" target="_blank">
+                                        <i class="fas fa-file-word"></i> Download Word Document
+                                    </a>
+                                {% endif %}
+
+                                {% if not document.pdf_file and not document.docx_file %}
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        No files available for download
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-warning text-center">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        No documents available for download. Please try generating documents again.
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="row mt-5">
+                <div class="col-12 text-center">
+                    <a href="{% url 'jobassistant:document_options' %}" class="btn btn-outline-primary me-3">
+                        <i class="fas fa-edit"></i> Generate More Documents
+                    </a>
+                    <a href="{% url 'jobassistant:clear_session' %}" class="btn btn-outline-secondary me-3"
+                       onclick="return confirm('This will clear all your progress. Are you sure?')">
+                        <i class="fas fa-plus"></i> Start New Application
+                    </a>
+                    <a href="{% url 'jobassistant:home' %}" class="btn btn-secondary">
+                        <i class="fas fa-home"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tips Section -->
+            <div class="row mt-5">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5><i class="fas fa-lightbulb text-warning"></i> Tips for Success</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6>Review Before Submitting</h6>
+                                    <p class="small">Always review the generated content and customize it further if needed. Add personal touches and specific examples.</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>File Formats</h6>
+                                    <p class="small">PDF files preserve formatting better, while Word documents allow for further editing. Choose based on your needs.</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Follow Up</h6>
+                                    <p class="small">After submitting your application, consider following up with the hiring manager or recruiter within a week.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <h6 class="text-primary">How was your experience?</h6>
+                            <p class="small text-muted">Your feedback helps us improve the service</p>
+                            <div class="d-flex justify-content-center gap-2">
+                                <button class="btn btn-outline-primary btn-sm" onclick="submitFeedback(5)">
+                                    ⭐⭐⭐⭐⭐ Excellent
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" onclick="submitFeedback(4)">
+                                    ⭐⭐⭐⭐ Good
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" onclick="submitFeedback(3)">
+                                    ⭐⭐⭐ Average
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" onclick="submitFeedback(2)">
+                                    ⭐⭐ Poor
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" onclick="submitFeedback(1)">
+                                    ⭐ Very Poor
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function submitFeedback(rating) {
+        // In a real application, you would send this to your backend
+        showNotification(`Thank you for your feedback! You rated us ${rating} stars.`, 'success');
+        
+        // Hide the feedback section after submission
+        document.querySelector('.card.border-primary').style.display = 'none';
+    }
+
+    // Auto-download if setting is enabled
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if auto-download is enabled (you'd get this from user settings)
+        const autoDownload = localStorage.getItem('autoDownload') === 'true';
+        
+        if (autoDownload) {
+            // Auto-click first PDF download link after a short delay
+            setTimeout(() => {
+                const firstPdfLink = document.querySelector('a[href*="pdf"]');
+                if (firstPdfLink) {
+                    showNotification('Auto-downloading your PDF...', 'info');
+                    firstPdfLink.click();
+                }
+            }, 1000);
+        }
+    });
+
+    // Show download instructions on mobile
+    if (window.innerWidth <= 768) {
+        document.addEventListener('DOMContentLoaded', function() {
+            showNotification('Tip: Files will open in a new tab. Use your browser\'s download option to save them.', 'info');
+        });
+    }
+</script>
+{% endblock %}

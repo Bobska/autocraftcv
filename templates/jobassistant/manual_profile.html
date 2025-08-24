@@ -1,0 +1,326 @@
+{% extends 'jobassistant/base.html' %}
+
+{% block title %}Manual Profile Entry - AutoCraftCV{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-edit"></i> Enter Your Professional Information
+                    </h4>
+                    <p class="mb-0 mt-2">Fill out your details to create a comprehensive profile for document generation</p>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="profileForm">
+                        {% csrf_token %}
+                        
+                        <!-- Personal Information Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-user"></i> Personal Information
+                                </h5>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.full_name.label_tag }}
+                                {{ form.full_name }}
+                                {% if form.full_name.errors %}
+                                    <div class="text-danger small">{{ form.full_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.email.label_tag }}
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.phone.label_tag }}
+                                {{ form.phone }}
+                                {% if form.phone.errors %}
+                                    <div class="text-danger small">{{ form.phone.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.location.label_tag }}
+                                {{ form.location }}
+                                {% if form.location.errors %}
+                                    <div class="text-danger small">{{ form.location.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.linkedin_url.label_tag }}
+                                {{ form.linkedin_url }}
+                                {% if form.linkedin_url.errors %}
+                                    <div class="text-danger small">{{ form.linkedin_url.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.portfolio_url.label_tag }}
+                                {{ form.portfolio_url }}
+                                {% if form.portfolio_url.errors %}
+                                    <div class="text-danger small">{{ form.portfolio_url.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Professional Summary Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-briefcase"></i> Professional Overview
+                                </h5>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.experience_level.label_tag }}
+                                {{ form.experience_level }}
+                                {% if form.experience_level.errors %}
+                                    <div class="text-danger small">{{ form.experience_level.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 mb-3">
+                                {{ form.professional_summary.label_tag }}
+                                {{ form.professional_summary }}
+                                {% if form.professional_summary.help_text %}
+                                    <div class="form-text">{{ form.professional_summary.help_text }}</div>
+                                {% endif %}
+                                {% if form.professional_summary.errors %}
+                                    <div class="text-danger small">{{ form.professional_summary.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Skills Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-cogs"></i> Skills & Expertise
+                                </h5>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.technical_skills.label_tag }}
+                                {{ form.technical_skills }}
+                                {% if form.technical_skills.help_text %}
+                                    <div class="form-text">{{ form.technical_skills.help_text }}</div>
+                                {% endif %}
+                                {% if form.technical_skills.errors %}
+                                    <div class="text-danger small">{{ form.technical_skills.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.soft_skills.label_tag }}
+                                {{ form.soft_skills }}
+                                {% if form.soft_skills.help_text %}
+                                    <div class="form-text">{{ form.soft_skills.help_text }}</div>
+                                {% endif %}
+                                {% if form.soft_skills.errors %}
+                                    <div class="text-danger small">{{ form.soft_skills.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 mb-3">
+                                {{ form.certifications.label_tag }}
+                                {{ form.certifications }}
+                                {% if form.certifications.help_text %}
+                                    <div class="form-text">{{ form.certifications.help_text }}</div>
+                                {% endif %}
+                                {% if form.certifications.errors %}
+                                    <div class="text-danger small">{{ form.certifications.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Education Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-graduation-cap"></i> Education
+                                </h5>
+                            </div>
+                            <div class="col-12 mb-3">
+                                {{ form.education.label_tag }}
+                                {{ form.education }}
+                                {% if form.education.help_text %}
+                                    <div class="form-text">{{ form.education.help_text }}</div>
+                                {% endif %}
+                                {% if form.education.errors %}
+                                    <div class="text-danger small">{{ form.education.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Experience Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-building"></i> Professional Experience
+                                </h5>
+                            </div>
+                            <div class="col-12 mb-3">
+                                {{ form.work_experience.label_tag }}
+                                {{ form.work_experience }}
+                                {% if form.work_experience.help_text %}
+                                    <div class="form-text">{{ form.work_experience.help_text }}</div>
+                                {% endif %}
+                                {% if form.work_experience.errors %}
+                                    <div class="text-danger small">{{ form.work_experience.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12 mb-3">
+                                {{ form.achievements.label_tag }}
+                                {{ form.achievements }}
+                                {% if form.achievements.help_text %}
+                                    <div class="form-text">{{ form.achievements.help_text }}</div>
+                                {% endif %}
+                                {% if form.achievements.errors %}
+                                    <div class="text-danger small">{{ form.achievements.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'jobassistant:home' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left"></i> Back to Home
+                                    </a>
+                                    
+                                    <div>
+                                        <button type="button" class="btn btn-outline-primary me-2" onclick="saveProgress()">
+                                            <i class="fas fa-save"></i> Save Progress
+                                        </button>
+                                        <button type="submit" class="btn btn-primary" onclick="showLoadingState(this.form, 'Saving profile...')">
+                                            <i class="fas fa-check"></i> Save Profile
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tips Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb"></i> Tips for Better Results</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Be Specific:</strong> Include specific technologies, tools, and methodologies you've used.
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Use Keywords:</strong> Include industry-relevant keywords that might appear in job postings.
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Quantify Achievements:</strong> Include numbers, percentages, and measurable results where possible.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-save progress to localStorage
+    function saveProgress() {
+        const form = document.getElementById('profileForm');
+        const formData = new FormData(form);
+        const data = {};
+        
+        for (let [key, value] of formData.entries()) {
+            if (key !== 'csrfmiddlewaretoken') {
+                data[key] = value;
+            }
+        }
+        
+        localStorage.setItem('profileProgress', JSON.stringify(data));
+        showNotification('Progress saved locally!', 'success');
+    }
+
+    // Load progress from localStorage
+    function loadProgress() {
+        const saved = localStorage.getItem('profileProgress');
+        if (saved) {
+            const data = JSON.parse(saved);
+            
+            for (let [key, value] of Object.entries(data)) {
+                const field = document.querySelector(`[name="${key}"]`);
+                if (field) {
+                    field.value = value;
+                }
+            }
+            
+            showNotification('Loaded previously saved progress', 'info');
+        }
+    }
+
+    // Auto-save every 30 seconds
+    setInterval(saveProgress, 30000);
+
+    // Load progress on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadProgress();
+        
+        // Add character counters to textareas
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            const counter = document.createElement('div');
+            counter.className = 'form-text text-end';
+            counter.innerHTML = `<span id="${textarea.name}_count">0</span> characters`;
+            textarea.parentNode.appendChild(counter);
+            
+            textarea.addEventListener('input', function() {
+                document.getElementById(`${textarea.name}_count`).textContent = textarea.value.length;
+            });
+            
+            // Initialize counter
+            document.getElementById(`${textarea.name}_count`).textContent = textarea.value.length;
+        });
+    });
+
+    // Form validation
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+        const required = ['full_name', 'email'];
+        let isValid = true;
+        
+        required.forEach(fieldName => {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            showNotification('Please fill in all required fields', 'error');
+            return false;
+        }
+        
+        // Clear saved progress on successful submission
+        localStorage.removeItem('profileProgress');
+    });
+
+    // Real-time validation
+    document.querySelectorAll('input, textarea, select').forEach(field => {
+        field.addEventListener('blur', function() {
+            if (this.hasAttribute('required') && !this.value.trim()) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
+    });
+</script>
+{% endblock %}

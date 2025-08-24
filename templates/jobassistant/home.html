@@ -1,0 +1,366 @@
+{% extends 'jobassistant/base.html' %}
+
+{% block title %}AutoCraftCV - AI-Powered Resume & Cover Letter Generator{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">Create Perfect Cover Letters & Resumes</h1>
+                <p class="lead mb-4">
+                    Use AI to generate tailored cover letters and resumes that match job requirements. 
+                    Simply paste a job URL, upload your resume, and let our AI do the rest.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <div class="badge bg-light text-dark px-3 py-2">
+                        <i class="fas fa-robot"></i> AI-Powered
+                    </div>
+                    <div class="badge bg-light text-dark px-3 py-2">
+                        <i class="fas fa-download"></i> PDF & Word Export
+                    </div>
+                    <div class="badge bg-light text-dark px-3 py-2">
+                        <i class="fas fa-clock"></i> 2-Minute Process
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <i class="fas fa-file-alt fa-10x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Progress Indicator -->
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="text-center flex-fill">
+                    <div class="step-number {% if not request.session.job_posting_id %}bg-primary{% else %}bg-success{% endif %}">1</div>
+                    <small class="text-muted">Job URL</small>
+                </div>
+                <div class="flex-fill">
+                    <div class="progress progress-bar-custom">
+                        <div class="progress-bar bg-{% if request.session.user_profile_id %}success{% elif request.session.job_posting_id %}warning{% else %}primary{% endif %}" 
+                             style="width: {% if request.session.user_profile_id %}100{% elif request.session.job_posting_id %}50{% else %}25{% endif %}%"></div>
+                    </div>
+                </div>
+                <div class="text-center flex-fill">
+                    <div class="step-number {% if not request.session.user_profile_id %}{% if request.session.job_posting_id %}bg-primary{% else %}bg-secondary{% endif %}{% else %}bg-success{% endif %}">2</div>
+                    <small class="text-muted">Resume/Profile</small>
+                </div>
+                <div class="flex-fill">
+                    <div class="progress progress-bar-custom">
+                        <div class="progress-bar bg-{% if request.session.user_profile_id and request.session.job_posting_id %}success{% else %}secondary{% endif %}" 
+                             style="width: {% if request.session.user_profile_id and request.session.job_posting_id %}100{% else %}0{% endif %}%"></div>
+                    </div>
+                </div>
+                <div class="text-center flex-fill">
+                    <div class="step-number {% if request.session.user_profile_id and request.session.job_posting_id %}bg-primary{% else %}bg-secondary{% endif %}">3</div>
+                    <small class="text-muted">Generate</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="container py-5">
+    <div class="row">
+        <!-- Step 1: Job URL -->
+        <div class="col-lg-6 mb-4">
+            <div class="card feature-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary text-white rounded-circle p-2 me-3">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <h4 class="card-title mb-0">Step 1: Job URL</h4>
+                        {% if request.session.job_posting_id %}
+                            <i class="fas fa-check-circle text-success ms-auto"></i>
+                        {% endif %}
+                    </div>
+                    
+                    {% if request.session.job_posting_id %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check"></i> Job posting loaded successfully!
+                            <a href="{% url 'jobassistant:job_details' request.session.job_posting_id %}" class="alert-link">View Details</a>
+                        </div>
+                    {% else %}
+                        <p class="card-text mb-3">
+                            Paste the URL of a job posting from LinkedIn, Indeed, or other job sites. 
+                            Our AI will extract the job requirements and details.
+                        </p>
+                        
+                        <form method="post" action="{% url 'jobassistant:scrape_job_url' %}" id="jobUrlForm">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                {{ url_form.url.label_tag }}
+                                {{ url_form.url }}
+                                {% if url_form.url.help_text %}
+                                    <div class="form-text">{{ url_form.url.help_text }}</div>
+                                {% endif %}
+                                {% if url_form.url.errors %}
+                                    <div class="text-danger">
+                                        {% for error in url_form.url.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100" onclick="showLoadingState(this.form, 'Scraping job posting...')">
+                                <i class="fas fa-download"></i> Scrape Job Posting
+                            </button>
+                        </form>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-shield-alt"></i> 
+                                Supported sites: LinkedIn, Indeed, Glassdoor, and most career pages
+                            </small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Resume/Profile -->
+        <div class="col-lg-6 mb-4">
+            <div class="card feature-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success text-white rounded-circle p-2 me-3">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h4 class="card-title mb-0">Step 2: Your Profile</h4>
+                        {% if request.session.user_profile_id %}
+                            <i class="fas fa-check-circle text-success ms-auto"></i>
+                        {% endif %}
+                    </div>
+                    
+                    {% if request.session.user_profile_id %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check"></i> Profile created successfully!
+                            <a href="{% url 'jobassistant:profile_review' request.session.user_profile_id %}" class="alert-link">Edit Profile</a>
+                        </div>
+                    {% else %}
+                        <p class="card-text mb-3">
+                            Upload your existing resume or enter your information manually. 
+                            Our AI will parse and structure your data.
+                        </p>
+                        
+                        <!-- Upload Tab -->
+                        <ul class="nav nav-tabs mb-3" id="profileTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+                                    <i class="fas fa-upload"></i> Upload Resume
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab">
+                                    <i class="fas fa-edit"></i> Enter Manually
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content" id="profileTabContent">
+                            <!-- Upload Tab Content -->
+                            <div class="tab-pane fade show active" id="upload" role="tabpanel">
+                                <form method="post" action="{% url 'jobassistant:upload_resume' %}" enctype="multipart/form-data" id="resumeUploadForm">
+                                    {% csrf_token %}
+                                    <div class="file-upload-area mb-3" onclick="document.getElementById('id_resume_file').click()">
+                                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                        <p class="mb-2"><strong>Click to upload</strong> or drag and drop</p>
+                                        <p class="text-muted mb-0">PDF or Word documents (max 10MB)</p>
+                                        {{ upload_form.resume_file }}
+                                    </div>
+                                    
+                                    {% if upload_form.resume_file.errors %}
+                                        <div class="text-danger mb-3">
+                                            {% for error in upload_form.resume_file.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <button type="submit" class="btn btn-success w-100" onclick="showLoadingState(this.form, 'Parsing resume...')">
+                                        <i class="fas fa-file-upload"></i> Upload & Parse Resume
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <!-- Manual Entry Tab Content -->
+                            <div class="tab-pane fade" id="manual" role="tabpanel">
+                                <a href="{% url 'jobassistant:manual_profile_entry' %}" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-edit"></i> Enter Information Manually
+                                </a>
+                                <small class="text-muted d-block mt-2">
+                                    Fill out a detailed form with your professional information
+                                </small>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Generate Documents -->
+    {% if request.session.job_posting_id and request.session.user_profile_id %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card feature-card">
+                <div class="card-body text-center">
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="bg-warning text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <h4 class="card-title mb-0">Step 3: Generate Your Documents</h4>
+                    </div>
+                    
+                    <p class="card-text mb-4">
+                        Everything is ready! Generate your tailored cover letter and resume.
+                    </p>
+                    
+                    <a href="{% url 'jobassistant:document_options' %}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-rocket"></i> Generate Documents
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Features Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h2 class="text-center mb-5">Why Choose AutoCraftCV?</h2>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card h-100 text-center">
+                <div class="card-body">
+                    <div class="bg-primary text-white rounded-circle p-3 d-inline-flex mb-3">
+                        <i class="fas fa-brain fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">AI-Powered Matching</h5>
+                    <p class="card-text">
+                        Our AI analyzes job requirements and tailors your documents to match exactly what employers are looking for.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card h-100 text-center">
+                <div class="card-body">
+                    <div class="bg-success text-white rounded-circle p-3 d-inline-flex mb-3">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Save Time</h5>
+                    <p class="card-text">
+                        Generate professional documents in minutes instead of hours. Focus on applying to more jobs, not writing applications.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card h-100 text-center">
+                <div class="card-body">
+                    <div class="bg-info text-white rounded-circle p-3 d-inline-flex mb-3">
+                        <i class="fas fa-download fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Multiple Formats</h5>
+                    <p class="card-text">
+                        Download your documents in PDF or Word format, ready to submit or further customize as needed.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version Comparison -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="text-center mb-4">Version Comparison</h3>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Feature</th>
+                            <th class="text-center">Free Version</th>
+                            <th class="text-center">Paid Version</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Job URL Scraping</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i> Basic scraping</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i> Premium APIs</td>
+                        </tr>
+                        <tr>
+                            <td>Resume Parsing</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i> Open source tools</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i> Professional APIs</td>
+                        </tr>
+                        <tr>
+                            <td>AI Content Generation</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i> Local models</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i> GPT-4 & Claude</td>
+                        </tr>
+                        <tr>
+                            <td>Document Export</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i> PDF & Word</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i> PDF & Word</td>
+                        </tr>
+                        <tr>
+                            <td>Processing Speed</td>
+                            <td class="text-center"><i class="fas fa-clock text-warning"></i> Moderate</td>
+                            <td class="text-center"><i class="fas fa-bolt text-success"></i> Fast</td>
+                        </tr>
+                        <tr>
+                            <td>Accuracy</td>
+                            <td class="text-center"><i class="fas fa-star text-warning"></i> Good</td>
+                            <td class="text-center"><i class="fas fa-star text-success"></i> Excellent</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="text-center mt-3">
+                <form method="post" action="{% url 'jobassistant:toggle_version' %}" class="d-inline">
+                    {% csrf_token %}
+                    {{ version_form.version }}
+                    <button type="submit" class="btn btn-outline-primary ms-2">
+                        <i class="fas fa-toggle-off"></i> Switch Version
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // File upload preview
+    document.getElementById('id_resume_file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const uploadArea = document.querySelector('.file-upload-area');
+            uploadArea.innerHTML = `
+                <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
+                <p class="mb-2"><strong>File selected:</strong> ${file.name}</p>
+                <p class="text-muted mb-0">Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+            `;
+        }
+    });
+
+    // Hide file input
+    document.getElementById('id_resume_file').style.display = 'none';
+</script>
+{% endblock %}

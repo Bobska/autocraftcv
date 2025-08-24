@@ -49,11 +49,16 @@ class HomeView(TemplateView):
 
 
 def scrape_job_url(request):
-    """Handle job URL scraping"""
+    """Handle job URL scraping with enhanced anti-detection support"""
     if request.method == 'POST':
         form = JobURLForm(request.POST)
         if form.is_valid():
             url = form.cleaned_data['url']
+            
+            # Check if this is a protected site like SEEK
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc.lower()
+            is_protected_site = any(protected in domain for protected in ['seek.com', 'indeed.com', 'linkedin.com'])
             
             # Create scraping session
             session = ScrapingSession.objects.create(
@@ -66,13 +71,63 @@ def scrape_job_url(request):
                 app_version = getattr(settings, 'APP_VERSION', 'free')
                 use_paid = app_version == 'paid'
                 
-                # Initialize scraping service
+                # Try enhanced scraping for protected sites first
+                if is_protected_site:
+                    try:
+                        from .services.anti_detection_scraper import AntiDetectionScraper
+                        
+                        anti_scraper = AntiDetectionScraper()
+                        job_data, method_used = anti_scraper.scrape_protected_site(url)
+                        
+                        if job_data and job_data.get('title') and job_data.get('title') != 'Job Title Not Available':
+                            # Create job posting with enhanced data
+                            job_posting = JobPosting.objects.create(
+                                url=url,
+                                title=job_data.get('title', ''),
+                                company=job_data.get('company', ''),
+                                location=job_data.get('location', ''),
+                                description=job_data.get('description', ''),
+                                requirements=job_data.get('requirements', ''),
+                                qualifications=job_data.get('qualifications', ''),
+                                responsibilities=job_data.get('responsibilities', ''),
+                                salary_range=job_data.get('salary_range', ''),
+                                employment_type=job_data.get('employment_type', ''),
+                                raw_content=job_data.get('raw_content', ''),
+                                scraping_method='anti_detection',
+                                extraction_method='anti_detection',
+                                site_domain=domain,
+                                needs_review=False
+                            )
+                            
+                            # Update session
+                            session.job_posting = job_posting
+                            session.status = 'success'
+                            session.method_used = 'anti_detection'
+                            session.completed_at = timezone.now()
+                            session.save()
+                            
+                            # Store job ID in session
+                            request.session['job_posting_id'] = str(job_posting.id)
+                            
+                            messages.success(request, f'Successfully scraped job posting with enhanced protection: {job_posting.title}')
+                            return redirect('jobassistant:job_details', job_id=job_posting.id)
+                        
+                        else:
+                            # Anti-detection failed, suggest manual entry
+                            messages.warning(request, 'This site has strong anti-bot protection. Please use manual entry to add this job.')
+                            return redirect(f'/manual-entry/?url={url}')
+                            
+                    except Exception as e:
+                        logger.warning(f"Anti-detection scraping failed for {url}: {str(e)}")
+                        # Fall back to regular scraping
+                
+                # Initialize regular scraping service
                 scraper = JobScrapingService(use_paid_apis=use_paid)
                 
                 # Scrape the job
                 job_data, method_used = scraper.scrape_job(url)
                 
-                if job_data and job_data.get('title'):
+                if job_data and job_data.get('title') and job_data.get('title') != 'Job Title Not Available':
                     # Create job posting
                     job_posting = JobPosting.objects.create(
                         url=url,
@@ -86,7 +141,10 @@ def scrape_job_url(request):
                         salary_range=job_data.get('salary_range', ''),
                         employment_type=job_data.get('employment_type', ''),
                         raw_content=job_data.get('raw_content', ''),
-                        scraping_method=method_used
+                        scraping_method=method_used,
+                        extraction_method='standard',
+                        site_domain=domain,
+                        needs_review=False
                     )
                     
                     # Update session
@@ -108,7 +166,9 @@ def scrape_job_url(request):
                     session.completed_at = timezone.now()
                     session.save()
                     
-                    messages.error(request, 'Could not extract job information from the provided URL. Please try a different URL or enter the information manually.')
+                    # Suggest manual entry as fallback
+                    messages.error(request, 'Could not extract job information from the provided URL. Would you like to enter the information manually?')
+                    return redirect(f'/manual-entry/?url={url}')
                     
             except Exception as e:
                 session.status = 'failed'
@@ -117,7 +177,8 @@ def scrape_job_url(request):
                 session.save()
                 
                 logger.error(f"Error scraping job URL {url}: {str(e)}")
-                messages.error(request, f'Error scraping job posting: {str(e)}')
+                messages.error(request, f'Error scraping job posting: {str(e)}. Would you like to enter the information manually?')
+                return redirect(f'/manual-entry/?url={url}')
         
         else:
             messages.error(request, 'Please provide a valid job URL.')

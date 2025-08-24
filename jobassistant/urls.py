@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import test_views
+from . import manual_views
 
 app_name = 'jobassistant'
 
@@ -12,6 +13,14 @@ urlpatterns = [
     # Job processing
     path('scrape-job/', views.scrape_job_url, name='scrape_job_url'),
     path('job/<uuid:job_id>/', views.job_details, name='job_details'),
+    
+    # Enhanced scraping with anti-detection
+    path('enhanced-scrape/', manual_views.enhanced_scrape_job, name='enhanced_scrape_job'),
+    
+    # Manual entry system
+    path('manual-entry/', manual_views.manual_job_entry, name='manual_job_entry'),
+    path('manual-entry/help/', manual_views.manual_entry_help, name='manual_entry_help'),
+    path('retry-scraping/', manual_views.retry_scraping, name='retry_scraping'),
     
     # Profile processing
     path('upload-resume/', views.upload_resume, name='upload_resume'),

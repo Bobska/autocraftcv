@@ -24,6 +24,9 @@ class JobPosting(models.Model):
     scraped_at = models.DateTimeField(default=timezone.now)
     raw_content = models.TextField(blank=True)  # Store raw HTML/text
     scraping_method = models.CharField(max_length=50, default='beautifulsoup')  # beautifulsoup, selenium, api
+    extraction_method = models.CharField(max_length=100, blank=True)  # Enhanced tracking
+    site_domain = models.CharField(max_length=100, blank=True)  # Source site
+    needs_review = models.BooleanField(default=False)  # Manual review required
     
     class Meta:
         ordering = ['-scraped_at']

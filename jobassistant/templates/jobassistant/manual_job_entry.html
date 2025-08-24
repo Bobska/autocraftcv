@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manual Job Entry - {{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/progress-tracker.css' %}">
+<style>
+    .manual-entry-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .alert-anti-bot {
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+        color: #856404;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .instructions {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .instructions ol {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
+    
+    .instructions li {
+        margin-bottom: 5px;
+    }
+    
+    .form-control {
+        border-radius: 6px;
+    }
+    
+    #job_content {
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .char-counter {
+        font-size: 12px;
+        color: #6c757d;
+        text-align: right;
+        margin-top: 5px;
+    }
+    
+    .btn-group {
+        gap: 10px;
+    }
+    
+    .retry-section {
+        border-top: 1px solid #dee2e6;
+        padding-top: 20px;
+        margin-top: 20px;
+    }
+    
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    
+    .loading-content {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        min-width: 300px;
+    }
+    
+    .feature-highlight {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .feature-highlight h4 {
+        color: white;
+        margin-bottom: 10px;
+    }
+    
+    .tips-section {
+        background-color: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="manual-entry-container">
+    <!-- Header Alert -->
+    <div class="alert alert-anti-bot">
+        <h4><i class="fas fa-robot"></i> Automatic Scraping Failed</h4>
+        <p><strong>Reason:</strong> {{ failed_reason }}</p>
+        <p>Don't worry! Our AI-powered manual entry system can extract job details from pasted content with high accuracy.</p>
+    </div>
+    
+    <!-- AI Feature Highlight -->
+    <div class="feature-highlight">
+        <h4><i class="fas fa-magic"></i> AI-Powered Job Parsing</h4>
+        <p>Simply paste the job posting content below, and our advanced AI will automatically extract the job title, company, requirements, and description for you.</p>
+    </div>
+    
+    <!-- Main Form -->
+    <form method="post" id="manual-job-form">
+        {% csrf_token %}
+        
+        <!-- Job URL -->
+        <div class="mb-3">
+            <label for="job_url" class="form-label">
+                <i class="fas fa-link"></i> Job URL
+            </label>
+            <input type="url" class="form-control" id="job_url" name="job_url" 
+                   value="{{ failed_url }}" readonly>
+            <small class="form-text text-muted">The URL where automatic scraping failed</small>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="mb-3">
+            <label for="job_content" class="form-label">
+                <i class="fas fa-paste"></i> Job Posting Content
+            </label>
+            <div class="instructions">
+                <strong>How to get the job content:</strong>
+                <ol>
+                    <li><strong>Open the job posting</strong> in a new tab/window</li>
+                    <li><strong>Select all content</strong> (Ctrl+A or Cmd+A)</li>
+                    <li><strong>Copy everything</strong> (Ctrl+C or Cmd+C)</li>
+                    <li><strong>Paste it below</strong> (Ctrl+V or Cmd+V)</li>
+                    <li><strong>Click "Parse with AI"</strong> to extract job details</li>
+                </ol>
+                <small class="text-muted">
+                    <strong>Tip:</strong> Include everything - job title, company name, description, requirements, etc. 
+                    The more content you provide, the better our AI can extract accurate details.
+                </small>
+            </div>
+        </div>
+        
+        <!-- Content Textarea -->
+        <div class="mb-3">
+            <textarea class="form-control" id="job_content" name="job_content" 
+                      rows="20" placeholder="Paste the complete job posting content here...
+
+Example content to paste:
+- Job title and company name
+- Job description and responsibilities  
+- Required qualifications and skills
+- Location and employment type
+- Salary information (if available)
+- Any other job-related details
+
+The AI will automatically extract and organize this information for you."></textarea>
+            <div class="char-counter">
+                <span id="char-count">0</span> characters
+                <span class="text-muted">| Minimum 100 characters recommended</span>
+            </div>
+        </div>
+        
+        <!-- Submit Buttons -->
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                    <i class="fas fa-magic"></i> Parse with AI
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="retry-scraping-btn">
+                    <i class="fas fa-redo"></i> Try Auto-Scraping Again
+                </button>
+            </div>
+            <a href="{% url 'jobassistant:home' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Start Over
+            </a>
+        </div>
+    </form>
+    
+    <!-- Retry Section -->
+    <div class="retry-section">
+        <h5><i class="fas fa-question-circle"></i> Still Having Issues?</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="showTips()">
+                    <i class="fas fa-lightbulb"></i> Show Extraction Tips
+                </button>
+            </div>
+            <div class="col-md-6 text-end">
+                <a href="{% url 'jobassistant:manual_entry_help' %}" class="btn btn-outline-secondary btn-sm" target="_blank">
+                    <i class="fas fa-help"></i> Get Help
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tips Section (Hidden by default) -->
+    <div class="tips-section" id="tips-section" style="display: none;">
+        <h6><i class="fas fa-lightbulb"></i> Extraction Tips for Better Results</h6>
+        <ul>
+            <li><strong>Include everything:</strong> Copy the entire job posting page, not just parts</li>
+            <li><strong>SEEK jobs:</strong> Make sure to include the job title, company name, and full description</li>
+            <li><strong>LinkedIn jobs:</strong> Include both the job summary and detailed description</li>
+            <li><strong>Indeed jobs:</strong> Copy from the job title down to the bottom of the description</li>
+            <li><strong>Company websites:</strong> Include company name, job title, and all job details</li>
+            <li><strong>Multiple sections:</strong> If the job has separate sections for requirements, responsibilities, etc., include them all</li>
+        </ul>
+        <p><small class="text-muted">Our AI is trained to handle various job posting formats and will extract the most relevant information automatically.</small></p>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-content">
+        <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5>AI is parsing your job content...</h5>
+        <p class="text-muted">This may take a few seconds</p>
+        <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                 role="progressbar" style="width: 100%"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('manual-job-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const retryBtn = document.getElementById('retry-scraping-btn');
+    const contentTextarea = document.getElementById('job_content');
+    const charCount = document.getElementById('char-count');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    
+    // Character counter
+    contentTextarea.addEventListener('input', function() {
+        const count = this.value.length;
+        charCount.textContent = count;
+        
+        // Update button state based on content length
+        if (count >= 100) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('btn-outline-primary');
+            submitBtn.classList.add('btn-primary');
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.classList.remove('btn-primary');
+            submitBtn.classList.add('btn-outline-primary');
+        }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const content = contentTextarea.value.trim();
+        if (!content) {
+            alert('Please paste the job posting content first.');
+            return;
+        }
+        
+        if (content.length < 100) {
+            alert('Please paste more content. At least 100 characters are recommended for accurate parsing.');
+            return;
+        }
+        
+        // Show loading overlay
+        showLoading('AI is parsing your job content...', 'This may take a few seconds');
+        
+        // Submit form data
+        const formData = new FormData(form);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            
+            if (data.success) {
+                // Show success message
+                showSuccessMessage(data);
+                
+                // Redirect after a short delay
+                setTimeout(() => {
+                    window.location.href = data.redirect_url;
+                }, 1500);
+            } else {
+                showErrorMessage(data.error || 'Failed to parse job content');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            showErrorMessage('An error occurred while processing the job content');
+        });
+    });
+    
+    // Retry scraping button
+    retryBtn.addEventListener('click', function() {
+        const jobUrl = document.getElementById('job_url').value;
+        
+        if (!jobUrl) {
+            alert('No job URL available for retry');
+            return;
+        }
+        
+        showLoading('Retrying automatic scraping...', 'Using enhanced anti-detection methods');
+        
+        fetch('{% url "jobassistant:retry_scraping" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: 'job_url=' + encodeURIComponent(jobUrl)
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            
+            if (data.success) {
+                alert('Retry successful! Redirecting to job details...');
+                // Handle successful retry - you might want to save and redirect
+                window.location.href = '{% url "jobassistant:home" %}';
+            } else {
+                if (data.requires_manual_entry) {
+                    alert('Retry failed. Please use manual entry below.');
+                } else {
+                    alert('Retry failed: ' + (data.error || 'Unknown error'));
+                }
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Retry request failed');
+        });
+    });
+    
+    // Initial character count
+    contentTextarea.dispatchEvent(new Event('input'));
+});
+
+function showLoading(title, subtitle) {
+    const overlay = document.getElementById('loading-overlay');
+    overlay.querySelector('h5').textContent = title;
+    overlay.querySelector('p').textContent = subtitle;
+    overlay.style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loading-overlay').style.display = 'none';
+}
+
+function showSuccessMessage(data) {
+    const message = `
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <h5><i class="fas fa-check-circle"></i> AI Parsing Successful!</h5>
+            <ul class="mb-0">
+                <li><strong>Parsing Quality:</strong> ${data.parsing_quality || 'Good'}</li>
+                <li><strong>AI Processed:</strong> ${data.ai_parsed ? 'Yes' : 'Pattern-based'}</li>
+                <li><strong>Job ID:</strong> ${data.job_id}</li>
+                ${data.needs_review ? '<li><strong>Note:</strong> Some fields may need manual review</li>' : ''}
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.querySelector('.manual-entry-container').insertAdjacentHTML('afterbegin', message);
+}
+
+function showErrorMessage(error) {
+    const message = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h5><i class="fas fa-exclamation-triangle"></i> Parsing Failed</h5>
+            <p class="mb-0">${error}</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.querySelector('.manual-entry-container').insertAdjacentHTML('afterbegin', message);
+}
+
+function showTips() {
+    const tipsSection = document.getElementById('tips-section');
+    if (tipsSection.style.display === 'none') {
+        tipsSection.style.display = 'block';
+    } else {
+        tipsSection.style.display = 'none';
+    }
+}
+
+// Auto-save content to localStorage
+document.getElementById('job_content').addEventListener('input', function() {
+    localStorage.setItem('job_content_backup', this.value);
+});
+
+// Restore content from localStorage on page load
+window.addEventListener('load', function() {
+    const backup = localStorage.getItem('job_content_backup');
+    if (backup && !document.getElementById('job_content').value) {
+        document.getElementById('job_content').value = backup;
+        document.getElementById('job_content').dispatchEvent(new Event('input'));
+    }
+});
+
+// Clear backup when successfully submitted
+window.addEventListener('beforeunload', function() {
+    // Only clear if we're navigating to success page
+    if (window.location.href.includes('/job/')) {
+        localStorage.removeItem('job_content_backup');
+    }
+});
+</script>
+{% endblock %}

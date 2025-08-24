@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manual Job Entry Help{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3><i class="fas fa-question-circle"></i> Manual Job Entry Help</h3>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Overview -->
+                    <section class="mb-4">
+                        <h4><i class="fas fa-info-circle text-primary"></i> Overview</h4>
+                        <p>When automatic job scraping fails due to anti-bot protection or other issues, you can manually paste job content and let our AI extract the details for you.</p>
+                    </section>
+                    
+                    <!-- Step by Step Guide -->
+                    <section class="mb-4">
+                        <h4><i class="fas fa-list-ol text-success"></i> Step-by-Step Guide</h4>
+                        
+                        <div class="accordion" id="helpAccordion">
+                            <!-- Step 1 -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#step1">
+                                        <strong>Step 1: Open the Job Posting</strong>
+                                    </button>
+                                </h2>
+                                <div id="step1" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
+                                    <div class="accordion-body">
+                                        <ul>
+                                            <li>Open the job posting URL in a new browser tab</li>
+                                            <li>Make sure the full job details are visible</li>
+                                            <li>If there are "Show More" buttons, click them to expand all content</li>
+                                            <li>Wait for the page to fully load</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 2 -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step2">
+                                        <strong>Step 2: Select All Content</strong>
+                                    </button>
+                                </h2>
+                                <div id="step2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                    <div class="accordion-body">
+                                        <ul>
+                                            <li><strong>Windows:</strong> Press <kbd>Ctrl + A</kbd></li>
+                                            <li><strong>Mac:</strong> Press <kbd>Cmd + A</kbd></li>
+                                            <li><strong>Alternative:</strong> Right-click and select "Select All"</li>
+                                            <li>The entire page content should be highlighted</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 3 -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3">
+                                        <strong>Step 3: Copy the Content</strong>
+                                    </button>
+                                </h2>
+                                <div id="step3" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                    <div class="accordion-body">
+                                        <ul>
+                                            <li><strong>Windows:</strong> Press <kbd>Ctrl + C</kbd></li>
+                                            <li><strong>Mac:</strong> Press <kbd>Cmd + C</kbd></li>
+                                            <li><strong>Alternative:</strong> Right-click and select "Copy"</li>
+                                            <li>The content is now in your clipboard</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 4 -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step4">
+                                        <strong>Step 4: Paste and Parse</strong>
+                                    </button>
+                                </h2>
+                                <div id="step4" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                                    <div class="accordion-body">
+                                        <ul>
+                                            <li>Return to the manual entry form</li>
+                                            <li>Click in the large text area</li>
+                                            <li><strong>Windows:</strong> Press <kbd>Ctrl + V</kbd></li>
+                                            <li><strong>Mac:</strong> Press <kbd>Cmd + V</kbd></li>
+                                            <li>Click "Parse with AI" to extract job details</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- Site-Specific Tips -->
+                    <section class="mb-4">
+                        <h4><i class="fas fa-globe text-info"></i> Site-Specific Tips</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-warning text-dark">
+                                        <h6><i class="fas fa-search"></i> SEEK.com.au</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="small">
+                                            <li>Make sure job title and company name are visible</li>
+                                            <li>Include the full job description section</li>
+                                            <li>Look for "About the role" and "What you'll need" sections</li>
+                                            <li>Copy everything from the job header to the bottom</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-info text-white">
+                                        <h6><i class="fab fa-linkedin"></i> LinkedIn</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="small">
+                                            <li>Click "Show more" to expand full description</li>
+                                            <li>Include company name and location details</li>
+                                            <li>Copy both the summary and detailed sections</li>
+                                            <li>Include any skills or requirements listed</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6><i class="fas fa-briefcase"></i> Indeed</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="small">
+                                            <li>Include the job title and company information</li>
+                                            <li>Copy the full job description</li>
+                                            <li>Include salary information if available</li>
+                                            <li>Make sure to get location and job type details</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white">
+                                        <h6><i class="fas fa-building"></i> Company Websites</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="small">
+                                            <li>Navigate to the specific job posting page</li>
+                                            <li>Include company name and job title prominently</li>
+                                            <li>Copy all job-related sections</li>
+                                            <li>Include requirements, responsibilities, and benefits</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- Troubleshooting -->
+                    <section class="mb-4">
+                        <h4><i class="fas fa-wrench text-danger"></i> Troubleshooting</h4>
+                        
+                        <div class="accordion" id="troubleshootingAccordion">
+                            <!-- Problem 1 -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#problem1">
+                                        "AI parsing failed" or poor extraction quality
+                                    </button>
+                                </h2>
+                                <div id="problem1" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                    <div class="accordion-body">
+                                        <strong>Solutions:</strong>
+                                        <ul>
+                                            <li>Make sure you copied the complete job posting, not just a summary</li>
+                                            <li>Include both the job title/company and the detailed description</li>
+                                            <li>Try copying from a different section of the page</li>
+                                            <li>Remove any obvious website navigation elements if they're interfering</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Problem 2 -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#problem2">
+                                        "Content too short" error
+                                    </button>
+                                </h2>
+                                <div id="problem2" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                    <div class="accordion-body">
+                                        <strong>Solutions:</strong>
+                                        <ul>
+                                            <li>Make sure you selected and copied the entire page (Ctrl+A/Cmd+A)</li>
+                                            <li>Check that the job posting page fully loaded before copying</li>
+                                            <li>Include surrounding context like company information</li>
+                                            <li>The minimum is 100 characters, but 500+ characters work better</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Problem 3 -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#problem3">
+                                        Missing job title or company name
+                                    </button>
+                                </h2>
+                                <div id="problem3" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                    <div class="accordion-body">
+                                        <strong>Solutions:</strong>
+                                        <ul>
+                                            <li>Make sure the job title appears near the top of your pasted content</li>
+                                            <li>Include the company name prominently in the copied text</li>
+                                            <li>If these are in separate sections, try copying the entire page</li>
+                                            <li>You can manually edit the extracted details after AI processing</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- AI Information -->
+                    <section class="mb-4">
+                        <h4><i class="fas fa-robot text-purple"></i> How Our AI Works</h4>
+                        <div class="alert alert-info">
+                            <p><strong>Multi-Strategy Parsing:</strong> Our AI uses multiple approaches to extract job information:</p>
+                            <ul class="mb-0">
+                                <li><strong>Pattern Recognition:</strong> Identifies common job posting structures</li>
+                                <li><strong>Keyword Analysis:</strong> Finds job-related terms and phrases</li>
+                                <li><strong>Context Understanding:</strong> Understands the relationship between different parts</li>
+                                <li><strong>Content Validation:</strong> Ensures extracted information makes sense</li>
+                            </ul>
+                        </div>
+                    </section>
+                    
+                    <!-- What to Expect -->
+                    <section class="mb-4">
+                        <h4><i class="fas fa-check-circle text-success"></i> What to Expect</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>✅ Usually Extracted:</h6>
+                                <ul>
+                                    <li>Job title</li>
+                                    <li>Company name</li>
+                                    <li>Job description</li>
+                                    <li>Location</li>
+                                    <li>Basic requirements</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>⚠️ Sometimes Extracted:</h6>
+                                <ul>
+                                    <li>Detailed requirements</li>
+                                    <li>Salary information</li>
+                                    <li>Employment type</li>
+                                    <li>Benefits</li>
+                                    <li>Application deadlines</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- Contact Support -->
+                    <section>
+                        <h4><i class="fas fa-headset text-primary"></i> Still Need Help?</h4>
+                        <div class="alert alert-light border">
+                            <p>If you're still having trouble with manual job entry:</p>
+                            <ul class="mb-0">
+                                <li>Try the "Try Auto-Scraping Again" button for a retry with enhanced methods</li>
+                                <li>Make sure you're copying from the actual job posting page, not search results</li>
+                                <li>Include as much job-related content as possible</li>
+                                <li>You can always edit the extracted information after AI processing</li>
+                            </ul>
+                        </div>
+                    </section>
+                    
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="javascript:history.back()" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Go Back
+                        </a>
+                        <a href="{% url 'jobassistant:home' %}" class="btn btn-primary">
+                            <i class="fas fa-home"></i> Start Over
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

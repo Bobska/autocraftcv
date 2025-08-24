@@ -1,5 +1,5 @@
 """
-Enhanced Job scraping service with multiple strategies and fallback mechanisms
+Enhanced Job scraping service with multiple strategies and anti-detection capabilities
 """
 
 import requests
@@ -16,16 +16,19 @@ from typing import Dict, Optional, Tuple
 from django.conf import settings
 import logging
 from .enhanced_scraping_service import EnhancedJobScrapingService
+from .anti_detection_scraper import AntiDetectionScraper, SEEKSpecificScraper
 
 logger = logging.getLogger(__name__)
 
 
 class JobScrapingService:
-    """Enhanced service for scraping job postings from various websites"""
+    """Enhanced service for scraping job postings from various websites with anti-detection"""
     
     def __init__(self, use_paid_apis: bool = False):
         self.use_paid_apis = use_paid_apis
         self.enhanced_scraper = EnhancedJobScrapingService()
+        self.anti_detection_scraper = AntiDetectionScraper()
+        self.seek_scraper = SEEKSpecificScraper()
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -33,23 +36,47 @@ class JobScrapingService:
     
     def scrape_job(self, url: str) -> Tuple[Dict, str]:
         """
-        Main method to scrape job posting from URL using enhanced multi-strategy approach
+        Main method to scrape job posting from URL using multi-tier approach
         Returns: (job_data_dict, method_used)
         """
-        logger.info(f"Starting enhanced job scraping for URL: {url}")
+        logger.info(f"Starting comprehensive job scraping for URL: {url}")
         
-        # First try the enhanced scraper with all its strategies
+        # Tier 1: Try enhanced scraper first (fastest)
         try:
             job_data, method = self.enhanced_scraper.scrape_job(url)
             if self._validate_job_data(job_data):
-                logger.info(f"Successfully scraped job data using enhanced scraper ({method})")
+                logger.info(f"Successfully scraped with enhanced scraper ({method})")
                 return job_data, f"enhanced_{method}"
             else:
-                logger.warning("Enhanced scraper returned incomplete data, trying fallback strategies")
+                logger.info("Enhanced scraper returned insufficient data, trying anti-detection methods")
         except Exception as e:
-            logger.error(f"Enhanced scraper failed: {str(e)}, trying fallback strategies")
+            logger.warning(f"Enhanced scraper failed: {str(e)}, trying anti-detection methods")
         
-        # Fallback to original strategies if enhanced scraper fails
+        # Tier 2: Try anti-detection scraper for protected sites
+        try:
+            if self._needs_anti_detection(url):
+                logger.info("Using anti-detection scraping for protected site")
+                
+                if 'seek.com' in url.lower():
+                    job_data, method = self.seek_scraper.scrape_seek_job(url)
+                else:
+                    job_data, method = self.anti_detection_scraper.scrape_protected_site(url)
+                
+                # Check if manual entry is required
+                if job_data.get('manual_entry_required') or job_data.get('requires_manual_fallback'):
+                    logger.warning("Anti-detection scraper requires manual fallback")
+                    return job_data, method
+                
+                if self._validate_job_data(job_data):
+                    logger.info(f"Successfully scraped with anti-detection ({method})")
+                    return job_data, f"anti_detection_{method}"
+                else:
+                    logger.warning("Anti-detection scraper returned insufficient data")
+            
+        except Exception as e:
+            logger.warning(f"Anti-detection scraper failed: {str(e)}, trying fallback methods")
+        
+        # Tier 3: Fallback to original strategies if needed
         try:
             if self.use_paid_apis:
                 job_data, method = self._scrape_with_paid_apis(url)
@@ -60,15 +87,33 @@ class JobScrapingService:
                 if self._validate_job_data(job_data):
                     return job_data, method
         except Exception as e:
-            logger.error(f"Fallback scraping failed: {str(e)}")
+            logger.warning(f"Fallback scraping failed: {str(e)}")
         
-        # Final fallback - return minimal data
-        logger.warning("All scraping strategies failed, returning minimal fallback data")
-        return self._get_minimal_fallback_data(url), "minimal_fallback"
+        # Final fallback - return manual entry required
+        logger.warning("All scraping methods failed, returning manual entry requirement")
+        return self._get_manual_entry_fallback(url), "manual_entry_required"
+    
+    def _needs_anti_detection(self, url: str) -> bool:
+        """Determine if URL likely needs anti-detection methods"""
+        protected_sites = [
+            'seek.com',
+            'linkedin.com',
+            'glassdoor.com',
+            'indeed.com',
+            'monster.com',
+            'ziprecruiter.com'
+        ]
+        
+        url_lower = url.lower()
+        return any(site in url_lower for site in protected_sites)
     
     def _validate_job_data(self, job_data: Dict) -> bool:
         """Validate that we have meaningful job data"""
         if not job_data:
+            return False
+        
+        # Check for manual entry requirements
+        if job_data.get('manual_entry_required') or job_data.get('requires_manual_fallback'):
             return False
         
         # Check for meaningful title and company
@@ -76,25 +121,40 @@ class JobScrapingService:
         company = job_data.get('company', '').strip()
         
         # Must have either a meaningful title or company name
-        has_title = title and len(title) > 5 and 'not available' not in title.lower() and 'extraction failed' not in title.lower()
-        has_company = company and len(company) > 2 and 'not available' not in company.lower() and 'unknown' not in company.lower()
+        has_title = (title and 
+                    len(title) > 5 and 
+                    'not available' not in title.lower() and 
+                    'extraction failed' not in title.lower() and
+                    'manual entry required' not in title.lower() and
+                    'manual review required' not in title.lower())
+        
+        has_company = (company and 
+                      len(company) > 2 and 
+                      'not available' not in company.lower() and 
+                      'unknown' not in company.lower() and
+                      'extraction failed' not in company.lower() and
+                      'manual entry required' not in company.lower() and
+                      'manual review required' not in company.lower())
         
         return has_title or has_company
     
-    def _get_minimal_fallback_data(self, url: str) -> Dict:
-        """Create minimal fallback data when all scraping fails"""
+    def _get_manual_entry_fallback(self, url: str) -> Dict:
+        """Create fallback data indicating manual entry is required"""
         return {
-            'title': 'Manual Review Required',
-            'company': 'Company Not Extracted',
-            'description': f'Automatic extraction failed for URL: {url}. Please review manually and extract job details.',
-            'location': 'Location Not Available',
-            'requirements': 'Requirements extraction failed',
-            'responsibilities': 'Responsibilities extraction failed',
+            'title': 'Manual Entry Required - Automatic Extraction Failed',
+            'company': 'Manual Entry Required - Automatic Extraction Failed',
+            'description': f'All automatic scraping methods failed for URL: {url}. This may be due to anti-bot protection, site changes, or complex page structure. Please use manual entry to paste the job content.',
+            'location': 'Manual Entry Required',
+            'requirements': 'Manual Entry Required',
+            'responsibilities': 'Manual Entry Required',
             'salary_range': '',
             'employment_type': '',
             'url': url,
-            'extraction_status': 'failed',
-            'manual_review_required': True
+            'extraction_status': 'manual_required',
+            'manual_entry_required': True,
+            'requires_manual_fallback': True,
+            'all_methods_failed': True,
+            'suggested_action': 'manual_entry'
         }
     
     def _scrape_with_paid_apis(self, url: str) -> Tuple[Dict, str]:

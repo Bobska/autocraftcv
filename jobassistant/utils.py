@@ -18,11 +18,12 @@ class ProgressTracker:
         self.task_id = task_id or str(uuid.uuid4())
         self.total_steps = total_steps
         self.current_step = 0
-        self.start_time = time.time()
         self.status = "Initializing..."
-        self.stage = "1/1"
-        self.error_message = None
+        self.stage = "0/0"
         self.completed = False
+        self.error_message = None
+        self.additional_data = {}
+        self.start_time = time.time()
         
     def update(self, step: int, status: str, stage: Optional[str] = None, error: Optional[str] = None):
         """Update progress information"""
@@ -55,16 +56,18 @@ class ProgressTracker:
             'completed': self.completed or progress >= 100,
             'elapsed_time': int(elapsed_time),
             'estimated_remaining': estimated_remaining,
-            'timestamp': time.time()
+            'timestamp': time.time(),
+            **self.additional_data  # Include any additional data
         }
         
         # Cache for 10 minutes
         cache.set(f'progress_{self.task_id}', progress_data, timeout=600)
         return progress_data
     
-    def complete(self, status: str = "Complete!"):
-        """Mark task as completed"""
+    def complete(self, status: str = "Complete!", additional_data: Optional[Dict[str, Any]] = None):
+        """Mark task as completed with optional additional data"""
         self.completed = True
+        self.additional_data = additional_data or {}
         return self.update(self.total_steps, status)
     
     def set_error(self, error_message: str):

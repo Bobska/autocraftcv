@@ -4,6 +4,8 @@ LinkedIn Session-Based Scraper for Authentication Bypass
 
 import time
 import logging
+import os
+import tempfile
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -31,6 +33,9 @@ class LinkedInSessionScraper:
         
     def setup_driver(self, headless=False):
         """Setup undetected Chrome driver for LinkedIn"""
+        if self.driver is not None:
+            return True
+            
         try:
             # Use undetected-chromedriver for better stealth
             options = uc.ChromeOptions()
@@ -45,8 +50,12 @@ class LinkedInSessionScraper:
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option('useAutomationExtension', False)
             
-            # Persist session data
-            options.add_argument('--user-data-dir=temp/chrome-linkedin-session')
+            # Persist session data - use temp directory for cross-platform compatibility
+            temp_dir = tempfile.gettempdir()
+            chrome_data_dir = os.path.join(temp_dir, 'chrome-linkedin-session')
+            os.makedirs(chrome_data_dir, exist_ok=True)
+            
+            options.add_argument(f'--user-data-dir={chrome_data_dir}')
             options.add_argument('--profile-directory=LinkedIn')
             
             # Create undetected chrome instance

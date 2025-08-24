@@ -30,9 +30,6 @@ from .utils import (
     AIGenerationProgress,
     simulate_progress_delay
 )
-from .safe_data_utils import get_safe_job_data_for_save, clean_job_data
-from .services.content_generation_service import ContentGenerationService
-from .services.document_generation_service import DocumentGenerationService
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,7 @@
+# Additional requirements for LinkedIn Login + Manual Entry Enhancement
+undetected-chromedriver>=3.5.0
+selenium-stealth>=1.0.6
+fake-useragent>=1.4.0
+
+# Note: Add these to your main requirements.txt file
+# These packages are required for the LinkedIn session scraper functionality

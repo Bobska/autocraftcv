@@ -46,6 +46,7 @@ class AntiDetectionScraper:
                         'h1',
                     ],
                     'company': [
+                        '[data-automation="advertiser-name"]',
                         '[data-automation="job-detail-company-name"]',
                         '[data-testid="job-detail-company"]',
                         '.company-name',
@@ -59,6 +60,7 @@ class AntiDetectionScraper:
                         '[data-automation="job-location"]',
                     ],
                     'description': [
+                        '[data-automation="jobAdDetails"]',
                         '[data-automation="job-detail-description"]',
                         '[data-testid="job-description"]',
                         '.job-description',
@@ -134,7 +136,7 @@ class AntiDetectionScraper:
             logger.error(f"Failed to setup stealth driver: {str(e)}")
             raise
     
-    def human_like_behavior(self, driver: webdriver.Chrome, site_domain: str = None):
+    def human_like_behavior(self, driver: webdriver.Chrome, site_domain: str = "generic"):
         """Simulate human-like browsing behavior"""
         
         try:
@@ -331,6 +333,9 @@ class AntiDetectionScraper:
     def extract_job_data(self, driver: webdriver.Chrome, site_domain: str, url: str) -> Dict:
         """Extract job data using site-specific selectors"""
         
+        # Remove script tags to prevent extraction from JavaScript variables
+        self.remove_script_tags(driver)
+        
         config = self.site_configs.get(site_domain, {})
         selectors = config.get('selectors', {})
         
@@ -350,6 +355,21 @@ class AntiDetectionScraper:
         job_data = self.clean_extracted_data(job_data)
         
         return job_data
+    
+    def remove_script_tags(self, driver: webdriver.Chrome):
+        """Remove script tags from the page to prevent extraction from JavaScript variables"""
+        try:
+            # Execute JavaScript to remove all script tags
+            driver.execute_script("""
+                var scripts = document.getElementsByTagName('script');
+                for (var i = scripts.length - 1; i >= 0; i--) {
+                    scripts[i].parentNode.removeChild(scripts[i]);
+                }
+            """)
+            logger.debug("Successfully removed script tags from page")
+        except Exception as e:
+            logger.debug(f"Failed to remove script tags: {str(e)}")
+    
     
     def extract_by_selectors(self, driver: webdriver.Chrome, selectors: list) -> str:
         """Try multiple selectors to extract text"""
@@ -380,6 +400,9 @@ class AntiDetectionScraper:
         # Clean text fields
         for field in ['title', 'company', 'location', 'description', 'requirements']:
             if job_data.get(field):
+                # Remove JSON-encoded content that may have been extracted
+                job_data[field] = self.remove_json_encoded_content(job_data[field])
+                
                 # Remove excessive whitespace
                 job_data[field] = ' '.join(job_data[field].split())
                 
@@ -407,21 +430,49 @@ class AntiDetectionScraper:
         
         return job_data
     
+    def remove_json_encoded_content(self, text: str) -> str:
+        """Remove JSON-encoded content that may have been incorrectly extracted"""
+        if not text:
+            return text
+            
+        # Remove content that contains JSON-encoded HTML (like \u003C for <)
+        import re
+        
+        # Pattern to detect JSON-encoded HTML
+        json_encoded_pattern = r'\\u003[A-Fa-f0-9]{1}|\\u002[A-Fa-f0-9]{1}|\\[\'"]'
+        
+        # If the text contains significant JSON encoding, it's likely from a script tag
+        if re.search(json_encoded_pattern, text):
+            # Count the occurrences
+            encoded_matches = len(re.findall(json_encoded_pattern, text))
+            total_length = len(text)
+            
+            # If more than 5% of the content is JSON-encoded, discard it
+            if total_length > 0 and (encoded_matches / total_length * 100) > 0.05:
+                return ""
+        
+        # Remove specific JSON-encoded artifacts
+        text = re.sub(r'\\u003C.*?\\u003E', '', text)  # Remove <tag> patterns
+        text = re.sub(r'\\u002F', '/', text)  # Convert \u002F to /
+        text = re.sub(r'\\[\'"]', '', text)  # Remove escaped quotes
+        
+        return text.strip()
+    
     def is_successful_extraction(self, job_data: Dict) -> bool:
         """Check if extraction was successful"""
         
         # Must have at least title or company
-        has_title = (job_data.get('title') and 
-                    len(job_data['title']) > 10 and 
-                    'extraction failed' not in job_data['title'].lower())
+        has_title = bool(job_data.get('title') and 
+                        len(job_data['title']) > 10 and 
+                        'extraction failed' not in job_data['title'].lower())
         
-        has_company = (job_data.get('company') and 
-                      len(job_data['company']) > 3 and 
-                      'extraction failed' not in job_data['company'].lower())
+        has_company = bool(job_data.get('company') and 
+                          len(job_data['company']) > 3 and 
+                          'extraction failed' not in job_data['company'].lower())
         
-        has_description = (job_data.get('description') and 
-                          len(job_data['description']) > 100 and 
-                          'extraction failed' not in job_data['description'].lower())
+        has_description = bool(job_data.get('description') and 
+                              len(job_data['description']) > 100 and 
+                              'extraction failed' not in job_data['description'].lower())
         
         # Consider successful if we have meaningful data
         return has_title or (has_company and has_description)
@@ -466,6 +517,7 @@ class SEEKSpecificScraper(AntiDetectionScraper):
                 'h1',
             ],
             'company': [
+                '[data-automation="advertiser-name"]',
                 '[data-automation="job-detail-company-name"]',
                 '[data-testid="job-detail-company"]',
                 '[data-automation="job-company-name"]',
@@ -485,6 +537,7 @@ class SEEKSpecificScraper(AntiDetectionScraper):
                 '.JobHeader-location',
             ],
             'description': [
+                '[data-automation="jobAdDetails"]',
                 '[data-automation="job-detail-description"]',
                 '[data-testid="job-description"]',
                 '[data-automation="jobDescription"]',
@@ -532,13 +585,18 @@ class SEEKSpecificScraper(AntiDetectionScraper):
         seek_artifacts = [
             'SEEK', 'seek.com.au', 'Apply for this job',
             'Save this job', 'Email this job', 'Share this job',
-            'Jobs in Australia', 'More jobs like this'
+            'Jobs in Australia', 'More jobs like this',
+            'window.SEEK_REDUX_DATA', 'window.SEEK_CONFIG', 'window.SEEK_APOLLO_DATA'
         ]
         
         for field in ['title', 'company', 'description']:
             if job_data.get(field):
+                # Remove SEEK artifacts
                 for artifact in seek_artifacts:
                     job_data[field] = job_data[field].replace(artifact, '')
+                
+                # Additional JSON-encoded content cleaning for SEEK
+                job_data[field] = self.remove_json_encoded_content(job_data[field])
                 job_data[field] = job_data[field].strip()
         
         # Add SEEK-specific metadata

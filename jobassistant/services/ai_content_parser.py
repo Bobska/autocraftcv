@@ -79,7 +79,7 @@ class AIJobContentParser:
         regex_result = self.parse_with_regex(cleaned_content)
         
         # Combine results (AI takes priority)
-        final_result = self.combine_parsing_results(ai_result, regex_result, job_url)
+        final_result = self.combine_parsing_results(ai_result, regex_result, job_url or '')
         
         # Validate and enhance
         final_result = self.validate_and_enhance(final_result, cleaned_content)
@@ -91,8 +91,11 @@ class AIJobContentParser:
     def clean_content(self, raw_content: str) -> str:
         """Clean raw content for better parsing"""
         
+        # First, remove JSON-encoded content contamination
+        cleaned = self.remove_json_encoded_content(raw_content)
+        
         # Remove excessive whitespace
-        cleaned = re.sub(r'\n\s*\n', '\n\n', raw_content)
+        cleaned = re.sub(r'\n\s*\n', '\n\n', cleaned)
         cleaned = re.sub(r'[ \t]+', ' ', cleaned)
         
         # Remove common web elements
@@ -123,6 +126,36 @@ class AIJobContentParser:
         cleaned = cleaned.strip()
         
         return cleaned
+    
+    def remove_json_encoded_content(self, text: str) -> str:
+        """Remove JSON-encoded content that may have been incorrectly extracted"""
+        if not text:
+            return text
+            
+        # Remove content that contains JSON-encoded HTML (like \u003C for <)
+        import re
+        
+        # Pattern to detect JSON-encoded HTML
+        json_encoded_pattern = r'\\u003[A-Fa-f0-9]{1}|\\u002[A-Fa-f0-9]{1}|\\[\'"]'
+        
+        # If the text contains significant JSON encoding, it's likely from a script tag
+        if re.search(json_encoded_pattern, text):
+            # Count the occurrences
+            encoded_matches = len(re.findall(json_encoded_pattern, text))
+            total_length = len(text)
+            
+            # If more than 10% of the content is JSON-encoded, or more than 50 matches, discard it
+            contamination_percentage = (encoded_matches / total_length * 100) if total_length > 0 else 0
+            if contamination_percentage > 10 or encoded_matches > 50:
+                logger.warning(f"Discarding content with high JSON encoding contamination ({contamination_percentage:.1f}%, {encoded_matches} matches)")
+                return ""
+        
+        # Remove specific JSON-encoded artifacts
+        text = re.sub(r'\\u003C.*?\\u003E', '', text)  # Remove <tag> patterns
+        text = re.sub(r'\\u002F', '/', text)  # Convert \u002F to /
+        text = re.sub(r'\\[\'"]', '', text)  # Remove escaped quotes
+        
+        return text.strip()
     
     def parse_with_ai(self, content: str) -> Optional[Dict]:
         """Parse content using AI (free local model or API)"""
@@ -476,6 +509,9 @@ Return only the JSON object, no other text.
         
         for field in text_fields:
             if result.get(field):
+                # Remove JSON-encoded content contamination
+                result[field] = self.remove_json_encoded_content(result[field])
+                
                 # Remove excessive whitespace
                 result[field] = ' '.join(result[field].split())
                 

@@ -779,7 +779,16 @@ def _fallback_scrape(job_url):
         
         # Extract company
         company = ""
-        company_selectors = ['.company', '.company-name', '.employer', '[data-testid="company-name"]']
+        company_selectors = [
+            '[data-automation="advertiser-name"]',
+            '[data-automation="job-detail-company-name"]',
+            '[data-testid="job-detail-company"]',
+            '.company-name',
+            '[data-automation="job-company-name"]',
+            'a[href*="/companies/"]',
+            '.company',
+            '.employer'
+        ]
         for selector in company_selectors:
             company_elem = soup.select_one(selector)
             if company_elem and company_elem.get_text(strip=True):

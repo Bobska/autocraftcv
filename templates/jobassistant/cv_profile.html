@@ -1,0 +1,506 @@
+{% extends 'jobassistant/base.html' %}
+
+{% block title %}{{ profile.full_name }} - Professional CV{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <!-- Action Bar -->
+            <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+                <div>
+                    <h3 class="mb-1">Professional CV</h3>
+                    <p class="text-muted mb-0">{{ profile.full_name }}</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'jobassistant:cv_edit' profile_id=profile.id %}" 
+                       class="btn btn-outline-primary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-secondary">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                    <a href="{% url 'jobassistant:cv_dashboard' %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- CV Content -->
+            <div class="cv-container">
+                <!-- Header Section -->
+                <div class="cv-header text-center mb-5">
+                    <h1 class="cv-name">{{ profile.full_name }}</h1>
+                    
+                    <div class="cv-contact-info">
+                        <div class="row justify-content-center">
+                            {% if profile.email %}
+                            <div class="col-auto">
+                                <i class="fas fa-envelope text-primary"></i>
+                                <a href="mailto:{{ profile.email }}">{{ profile.email }}</a>
+                            </div>
+                            {% endif %}
+                            
+                            {% if profile.phone %}
+                            <div class="col-auto">
+                                <i class="fas fa-phone text-primary"></i>
+                                <span>{{ profile.phone }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if profile.location %}
+                            <div class="col-auto">
+                                <i class="fas fa-map-marker-alt text-primary"></i>
+                                <span>{{ profile.location }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row justify-content-center mt-2">
+                            {% if profile.linkedin_url %}
+                            <div class="col-auto">
+                                <i class="fab fa-linkedin text-primary"></i>
+                                <a href="{{ profile.linkedin_url }}" target="_blank">LinkedIn Profile</a>
+                            </div>
+                            {% endif %}
+                            
+                            {% if profile.portfolio_url %}
+                            <div class="col-auto">
+                                <i class="fas fa-globe text-primary"></i>
+                                <a href="{{ profile.portfolio_url }}" target="_blank">Portfolio</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Main Content Column -->
+                    <div class="col-lg-8">
+                        <!-- Professional Summary -->
+                        {% if profile.professional_summary %}
+                        <section class="cv-section mb-5">
+                            <h2 class="cv-section-title">Professional Summary</h2>
+                            <div class="cv-section-content">
+                                <p class="cv-summary">{{ profile.professional_summary }}</p>
+                                {% if profile.experience_level %}
+                                <p class="cv-experience-level">
+                                    <strong>Experience Level:</strong> {{ profile.get_experience_level_display }}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </section>
+                        {% endif %}
+
+                        <!-- Work Experience -->
+                        {% if work_experience %}
+                        <section class="cv-section mb-5">
+                            <h2 class="cv-section-title">Professional Experience</h2>
+                            <div class="cv-section-content">
+                                <div class="cv-timeline">
+                                    {% for exp in work_experience %}
+                                    <div class="cv-timeline-item">
+                                        <div class="cv-timeline-marker"></div>
+                                        <div class="cv-timeline-content">
+                                            <h4 class="cv-job-header">{{ exp.header }}</h4>
+                                            {% if exp.responsibilities %}
+                                            <ul class="cv-responsibilities">
+                                                {% for responsibility in exp.responsibilities %}
+                                                <li>{{ responsibility }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </section>
+                        {% endif %}
+
+                        <!-- Education -->
+                        {% if education %}
+                        <section class="cv-section mb-5">
+                            <h2 class="cv-section-title">Education</h2>
+                            <div class="cv-section-content">
+                                {% for edu in education %}
+                                <div class="cv-education-item">
+                                    <h4>{{ edu }}</h4>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </section>
+                        {% endif %}
+
+                        <!-- Achievements -->
+                        {% if profile.achievements %}
+                        <section class="cv-section mb-5">
+                            <h2 class="cv-section-title">Key Achievements</h2>
+                            <div class="cv-section-content">
+                                <div class="cv-achievements">
+                                    {{ profile.achievements|linebreaksbr }}
+                                </div>
+                            </div>
+                        </section>
+                        {% endif %}
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="col-lg-4">
+                        <!-- Technical Skills -->
+                        {% if technical_skills %}
+                        <section class="cv-sidebar-section mb-4">
+                            <h3 class="cv-sidebar-title">Technical Skills</h3>
+                            <div class="cv-skills-grid">
+                                {% for skill in technical_skills %}
+                                <span class="cv-skill-tag cv-skill-technical">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        </section>
+                        {% endif %}
+
+                        <!-- Soft Skills -->
+                        {% if soft_skills %}
+                        <section class="cv-sidebar-section mb-4">
+                            <h3 class="cv-sidebar-title">Soft Skills</h3>
+                            <div class="cv-skills-grid">
+                                {% for skill in soft_skills %}
+                                <span class="cv-skill-tag cv-skill-soft">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        </section>
+                        {% endif %}
+
+                        <!-- Certifications -->
+                        {% if profile.certifications %}
+                        <section class="cv-sidebar-section mb-4">
+                            <h3 class="cv-sidebar-title">Certifications</h3>
+                            <div class="cv-sidebar-content">
+                                {{ profile.certifications|linebreaksbr }}
+                            </div>
+                        </section>
+                        {% endif %}
+
+                        <!-- Quick Actions (No Print) -->
+                        <section class="cv-sidebar-section no-print">
+                            <h3 class="cv-sidebar-title">Quick Actions</h3>
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'jobassistant:home' %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-search"></i> Find Jobs
+                                </a>
+                                <a href="{% url 'jobassistant:document_options' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-file-alt"></i> Generate Documents
+                                </a>
+                                <a href="{% url 'jobassistant:cv_edit' profile_id=profile.id %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-edit"></i> Edit CV
+                                </a>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* CV Container */
+.cv-container {
+    background-color: var(--card-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--card-border);
+}
+
+/* CV Header */
+.cv-header {
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 1.5rem;
+}
+
+.cv-name {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.cv-contact-info {
+    font-size: 0.95rem;
+}
+
+.cv-contact-info .row > .col-auto {
+    margin: 0.25rem 0.5rem;
+}
+
+.cv-contact-info i {
+    margin-right: 0.5rem;
+    width: 16px;
+    text-align: center;
+}
+
+.cv-contact-info a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.cv-contact-info a:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* CV Sections */
+.cv-section {
+    margin-bottom: 2rem;
+}
+
+.cv-section-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.cv-section-content {
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Professional Summary */
+.cv-summary {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+.cv-experience-level {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+/* Timeline for Work Experience */
+.cv-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.cv-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--primary-color);
+}
+
+.cv-timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.cv-timeline-marker {
+    position: absolute;
+    left: -2rem;
+    top: 0.5rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    border: 3px solid var(--card-bg);
+}
+
+.cv-job-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.cv-responsibilities {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.cv-responsibilities li {
+    margin-bottom: 0.25rem;
+    color: var(--text-secondary);
+}
+
+/* Education */
+.cv-education-item {
+    margin-bottom: 1rem;
+}
+
+.cv-education-item h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Achievements */
+.cv-achievements {
+    color: var(--text-secondary);
+}
+
+/* Sidebar */
+.cv-sidebar-section {
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.cv-sidebar-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.cv-sidebar-content {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Skills */
+.cv-skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.cv-skill-tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.cv-skill-technical {
+    background-color: var(--primary-color-10);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.cv-skill-soft {
+    background-color: var(--secondary-color-10);
+    border-color: var(--secondary-color);
+    color: var(--secondary-color);
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .container {
+        max-width: none !important;
+        padding: 0 !important;
+    }
+    
+    .cv-container {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        background-color: white !important;
+    }
+    
+    .cv-name {
+        font-size: 2rem !important;
+        color: #333 !important;
+    }
+    
+    .cv-section-title {
+        color: #333 !important;
+        border-bottom: 1px solid #ccc !important;
+    }
+    
+    .cv-timeline::before {
+        background-color: #333 !important;
+    }
+    
+    .cv-timeline-marker {
+        background-color: #333 !important;
+        border-color: white !important;
+    }
+    
+    .cv-sidebar-section {
+        background-color: #f8f9fa !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    
+    .cv-skill-tag {
+        background-color: #e9ecef !important;
+        border-color: #ced4da !important;
+        color: #495057 !important;
+    }
+    
+    /* Ensure page breaks */
+    .cv-section {
+        page-break-inside: avoid;
+    }
+    
+    .cv-timeline-item {
+        page-break-inside: avoid;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .cv-container {
+        padding: 1.5rem;
+    }
+    
+    .cv-name {
+        font-size: 2rem;
+    }
+    
+    .cv-contact-info .row {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .cv-contact-info .col-auto {
+        margin: 0.25rem 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .cv-container {
+        padding: 1rem;
+    }
+    
+    .cv-name {
+        font-size: 1.75rem;
+    }
+    
+    .cv-timeline {
+        padding-left: 1.5rem;
+    }
+    
+    .cv-timeline-marker {
+        left: -1.5rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,655 @@
+{% extends 'jobassistant/base.html' %}
+
+{% block title %}Edit CV - {{ profile.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="mb-1">Edit Professional CV</h3>
+                    <p class="text-muted mb-0">Update your professional information</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'jobassistant:cv_profile' profile_id=profile.id %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-eye"></i> Preview
+                    </a>
+                    <a href="{% url 'jobassistant:cv_dashboard' %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- Progress Indicator -->
+            <div class="edit-progress-container mb-4">
+                <div class="row text-center">
+                    <div class="col-6 col-md-3">
+                        <div class="edit-progress-item active" data-section="personal">
+                            <div class="edit-progress-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <span>Personal</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="edit-progress-item" data-section="professional">
+                            <div class="edit-progress-icon">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <span>Professional</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="edit-progress-item" data-section="experience">
+                            <div class="edit-progress-icon">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <span>Experience</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="edit-progress-item" data-section="skills">
+                            <div class="edit-progress-icon">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <span>Skills</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Form -->
+            <div class="edit-form-container">
+                <form id="cv-edit-form" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- Personal Information Section -->
+                    <div class="edit-section active" id="personal-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-user text-primary me-2"></i>
+                                    Personal Information
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_first_name" class="form-label">First Name</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="id_first_name" 
+                                                   name="first_name" 
+                                                   value="{{ profile.first_name|default:'' }}"
+                                                   required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_last_name" class="form-label">Last Name</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="id_last_name" 
+                                                   name="last_name" 
+                                                   value="{{ profile.last_name|default:'' }}"
+                                                   required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_email" class="form-label">Email Address</label>
+                                            <input type="email" 
+                                                   class="form-control" 
+                                                   id="id_email" 
+                                                   name="email" 
+                                                   value="{{ profile.email|default:'' }}"
+                                                   required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_phone" class="form-label">Phone Number</label>
+                                            <input type="tel" 
+                                                   class="form-control" 
+                                                   id="id_phone" 
+                                                   name="phone" 
+                                                   value="{{ profile.phone|default:'' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_location" class="form-label">Location</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="id_location" 
+                                                   name="location" 
+                                                   value="{{ profile.location|default:'' }}"
+                                                   placeholder="City, State/Country">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_linkedin_url" class="form-label">LinkedIn URL</label>
+                                            <input type="url" 
+                                                   class="form-control" 
+                                                   id="id_linkedin_url" 
+                                                   name="linkedin_url" 
+                                                   value="{{ profile.linkedin_url|default:'' }}"
+                                                   placeholder="https://linkedin.com/in/your-profile">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_portfolio_url" class="form-label">Portfolio/Website URL</label>
+                                    <input type="url" 
+                                           class="form-control" 
+                                           id="id_portfolio_url" 
+                                           name="portfolio_url" 
+                                           value="{{ profile.portfolio_url|default:'' }}"
+                                           placeholder="https://your-portfolio.com">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Professional Information Section -->
+                    <div class="edit-section" id="professional-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-briefcase text-primary me-2"></i>
+                                    Professional Summary
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="id_professional_summary" class="form-label">Professional Summary</label>
+                                    <textarea class="form-control" 
+                                              id="id_professional_summary" 
+                                              name="professional_summary" 
+                                              rows="5"
+                                              placeholder="Write a compelling summary of your professional background, key skills, and career objectives...">{{ profile.professional_summary|default:'' }}</textarea>
+                                    <div class="form-text">2-3 sentences highlighting your key strengths and career goals.</div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_experience_level" class="form-label">Experience Level</label>
+                                            <select class="form-select" id="id_experience_level" name="experience_level">
+                                                <option value="">Select Experience Level</option>
+                                                <option value="entry" {% if profile.experience_level == 'entry' %}selected{% endif %}>Entry Level (0-2 years)</option>
+                                                <option value="mid" {% if profile.experience_level == 'mid' %}selected{% endif %}>Mid Level (3-5 years)</option>
+                                                <option value="senior" {% if profile.experience_level == 'senior' %}selected{% endif %}>Senior Level (6-10 years)</option>
+                                                <option value="lead" {% if profile.experience_level == 'lead' %}selected{% endif %}>Lead/Principal (10+ years)</option>
+                                                <option value="executive" {% if profile.experience_level == 'executive' %}selected{% endif %}>Executive/C-Level</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_desired_position" class="form-label">Desired Position</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="id_desired_position" 
+                                                   name="desired_position" 
+                                                   value="{{ profile.desired_position|default:'' }}"
+                                                   placeholder="e.g., Senior Software Engineer">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Experience Section -->
+                    <div class="edit-section" id="experience-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-history text-primary me-2"></i>
+                                    Work Experience & Education
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <label for="id_work_experience" class="form-label">Work Experience</label>
+                                    <textarea class="form-control" 
+                                              id="id_work_experience" 
+                                              name="work_experience" 
+                                              rows="8"
+                                              placeholder="Enter your work experience, one job per line in format: 'Job Title at Company Name (Start Date - End Date): Key responsibilities and achievements'">{{ profile.work_experience|default:'' }}</textarea>
+                                    <div class="form-text">Enter each position on a new line. Include job title, company, dates, and key achievements.</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="id_education" class="form-label">Education</label>
+                                    <textarea class="form-control" 
+                                              id="id_education" 
+                                              name="education" 
+                                              rows="4"
+                                              placeholder="Enter your education background, one degree per line in format: 'Degree in Field from Institution (Year)'">{{ profile.education|default:'' }}</textarea>
+                                    <div class="form-text">Include degree type, field of study, institution, and graduation year.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_certifications" class="form-label">Certifications</label>
+                                    <textarea class="form-control" 
+                                              id="id_certifications" 
+                                              name="certifications" 
+                                              rows="3"
+                                              placeholder="List your professional certifications, licenses, or credentials...">{{ profile.certifications|default:'' }}</textarea>
+                                    <div class="form-text">Include certification name, issuing organization, and expiration date if applicable.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_achievements" class="form-label">Key Achievements</label>
+                                    <textarea class="form-control" 
+                                              id="id_achievements" 
+                                              name="achievements" 
+                                              rows="4"
+                                              placeholder="Highlight your most significant professional achievements, awards, or recognition...">{{ profile.achievements|default:'' }}</textarea>
+                                    <div class="form-text">Focus on quantifiable achievements and career highlights.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skills Section -->
+                    <div class="edit-section" id="skills-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-cog text-primary me-2"></i>
+                                    Skills & Competencies
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <label for="id_technical_skills" class="form-label">Technical Skills</label>
+                                    <textarea class="form-control" 
+                                              id="id_technical_skills" 
+                                              name="technical_skills" 
+                                              rows="4"
+                                              placeholder="List your technical skills separated by commas (e.g., Python, JavaScript, AWS, Docker, SQL...)">{{ profile.technical_skills|default:'' }}</textarea>
+                                    <div class="form-text">Include programming languages, frameworks, tools, and technologies.</div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="id_soft_skills" class="form-label">Soft Skills</label>
+                                    <textarea class="form-control" 
+                                              id="id_soft_skills" 
+                                              name="soft_skills" 
+                                              rows="3"
+                                              placeholder="List your soft skills separated by commas (e.g., Leadership, Communication, Problem Solving...)">{{ profile.soft_skills|default:'' }}</textarea>
+                                    <div class="form-text">Include interpersonal skills, leadership abilities, and personal qualities.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_languages" class="form-label">Languages</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="id_languages" 
+                                           name="languages" 
+                                           value="{{ profile.languages|default:'' }}"
+                                           placeholder="e.g., English (Native), Spanish (Fluent), French (Intermediate)">
+                                    <div class="form-text">Include proficiency level for each language.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="edit-actions-container mt-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-secondary" id="prev-section-btn" disabled>
+                                        <i class="fas fa-arrow-left"></i> Previous
+                                    </button>
+                                    <button type="button" class="btn btn-primary" id="next-section-btn">
+                                        Next <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex gap-2 justify-content-md-end">
+                                    <button type="button" class="btn btn-outline-primary" id="auto-save-btn">
+                                        <i class="fas fa-save"></i> Save Draft
+                                    </button>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check"></i> Save CV
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Edit Progress */
+.edit-progress-container {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    border: 1px solid var(--card-border);
+}
+
+.edit-progress-item {
+    cursor: pointer;
+    padding: 1rem 0;
+    transition: all 0.3s ease;
+    opacity: 0.6;
+}
+
+.edit-progress-item.active {
+    opacity: 1;
+}
+
+.edit-progress-item:hover {
+    opacity: 1;
+}
+
+.edit-progress-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.edit-progress-item.active .edit-progress-icon {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.edit-progress-item span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.edit-progress-item.active span {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Edit Form */
+.edit-form-container {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+}
+
+.edit-section {
+    display: none;
+    padding: 2rem;
+}
+
+.edit-section.active {
+    display: block;
+}
+
+.edit-section .card {
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+}
+
+.edit-section .card-header {
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 1.5rem;
+}
+
+.edit-section .card-body {
+    padding: 1.5rem;
+}
+
+/* Form Controls */
+.form-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--input-bg);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
+    color: var(--text-primary);
+}
+
+.form-text {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Action Container */
+.edit-actions-container {
+    background-color: var(--bg-secondary);
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border-color);
+    border-radius: 0 0 8px 8px;
+}
+
+/* Auto-save Indicator */
+.auto-save-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 0.5rem 1rem;
+    background-color: var(--success-color);
+    color: white;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    z-index: 1050;
+    display: none;
+}
+
+.auto-save-indicator.show {
+    display: block;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .edit-progress-container {
+        padding: 1rem;
+    }
+    
+    .edit-progress-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .edit-section {
+        padding: 1rem;
+    }
+    
+    .edit-actions-container {
+        padding: 1rem;
+    }
+    
+    .edit-actions-container .row {
+        flex-direction: column-reverse;
+    }
+    
+    .edit-actions-container .col-md-6 {
+        margin-bottom: 1rem;
+    }
+    
+    .edit-actions-container .col-md-6:last-child {
+        margin-bottom: 0;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sections = ['personal', 'professional', 'experience', 'skills'];
+    let currentSection = 0;
+    let autoSaveTimeout;
+    
+    // Section Navigation
+    function showSection(index) {
+        // Hide all sections
+        document.querySelectorAll('.edit-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        // Remove active from all progress items
+        document.querySelectorAll('.edit-progress-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Show current section
+        document.getElementById(sections[index] + '-section').classList.add('active');
+        document.querySelector(`[data-section="${sections[index]}"]`).classList.add('active');
+        
+        // Update navigation buttons
+        document.getElementById('prev-section-btn').disabled = index === 0;
+        document.getElementById('next-section-btn').textContent = 
+            index === sections.length - 1 ? 'Finish' : 'Next ';
+        
+        if (index < sections.length - 1) {
+            document.getElementById('next-section-btn').innerHTML = 
+                'Next <i class="fas fa-arrow-right"></i>';
+        } else {
+            document.getElementById('next-section-btn').innerHTML = 
+                '<i class="fas fa-check"></i> Finish';
+        }
+    }
+    
+    // Progress item click handlers
+    document.querySelectorAll('.edit-progress-item').forEach((item, index) => {
+        item.addEventListener('click', function() {
+            currentSection = index;
+            showSection(currentSection);
+        });
+    });
+    
+    // Navigation button handlers
+    document.getElementById('prev-section-btn').addEventListener('click', function() {
+        if (currentSection > 0) {
+            currentSection--;
+            showSection(currentSection);
+        }
+    });
+    
+    document.getElementById('next-section-btn').addEventListener('click', function() {
+        if (currentSection < sections.length - 1) {
+            currentSection++;
+            showSection(currentSection);
+        } else {
+            // Finish - submit form
+            document.getElementById('cv-edit-form').submit();
+        }
+    });
+    
+    // Auto-save functionality
+    function showAutoSaveIndicator(message = 'Draft saved') {
+        const indicator = document.createElement('div');
+        indicator.className = 'auto-save-indicator show';
+        indicator.textContent = message;
+        document.body.appendChild(indicator);
+        
+        setTimeout(() => {
+            indicator.remove();
+        }, 3000);
+    }
+    
+    function autoSave() {
+        const formData = new FormData(document.getElementById('cv-edit-form'));
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAutoSaveIndicator();
+            }
+        })
+        .catch(error => {
+            console.error('Auto-save error:', error);
+        });
+    }
+    
+    // Auto-save on form changes
+    document.getElementById('cv-edit-form').addEventListener('input', function() {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(autoSave, 2000); // Auto-save after 2 seconds of no input
+    });
+    
+    // Manual save button
+    document.getElementById('auto-save-btn').addEventListener('click', function() {
+        autoSave();
+    });
+    
+    // Form submission
+    document.getElementById('cv-edit-form').addEventListener('submit', function(e) {
+        // Show loading state
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        submitBtn.disabled = true;
+        
+        // Re-enable after a delay (in case of error)
+        setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 5000);
+    });
+    
+    // Initialize
+    showSection(0);
+});
+</script>
+{% endblock %}

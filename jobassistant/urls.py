@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import test_views
 from . import manual_views
+from . import cv_views
 
 app_name = 'jobassistant'
 
@@ -33,6 +34,13 @@ urlpatterns = [
     path('profile/<uuid:profile_id>/review/', views.profile_review, name='profile_review'),
     path('profile/manual/', views.manual_profile_entry, name='manual_profile_entry'),
     
+    # CV-First Enhancement URLs
+    path('cv/dashboard/', cv_views.CVDashboardView.as_view(), name='cv_dashboard'),
+    path('cv/upload/', cv_views.CVUploadView.as_view(), name='cv_upload'),
+    path('cv/create/', cv_views.CVCreationWizardView.as_view(), name='cv_wizard'),
+    path('cv/profile/<uuid:profile_id>/', cv_views.CVProfileView.as_view(), name='cv_profile'),
+    path('cv/edit/<uuid:profile_id>/', cv_views.CVEditView.as_view(), name='cv_edit'),
+    
     # Document generation
     path('document-options/', views.document_options, name='document_options'),
     path('generate/', views.generate_documents, name='generate_documents'),
@@ -46,6 +54,10 @@ urlpatterns = [
     
     # API endpoints
     path('api/scraping-status/<uuid:session_id>/', views.check_scraping_status, name='check_scraping_status'),
+    
+    # CV-First API endpoints
+    path('api/cv/save-wizard-step/', cv_views.save_wizard_step, name='save_wizard_step'),
+    path('api/cv/upload-with-progress/', cv_views.upload_cv_with_progress, name='upload_cv_with_progress'),
     
     # Progress tracking API endpoints
     path('api/progress/<str:task_id>/', views.get_progress, name='get_progress'),

@@ -1,0 +1,620 @@
+{% extends 'jobassistant/base.html' %}
+
+{% block title %}Create CV - AutoCraftCV{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Page Header -->
+            <div class="text-center mb-4">
+                <h2 class="mb-3">
+                    <i class="fas fa-user-plus text-primary"></i> Create Your Professional CV
+                </h2>
+                <p class="text-muted">
+                    Follow our step-by-step wizard to create a comprehensive professional profile.
+                </p>
+            </div>
+
+            <!-- Progress Indicator -->
+            <div class="wizard-progress mb-5">
+                <div class="row text-center">
+                    <div class="col step-item {% if current_step <= 1 %}active{% elif current_step > 1 %}completed{% endif %}">
+                        <div class="step-circle">
+                            {% if current_step > 1 %}
+                                <i class="fas fa-check"></i>
+                            {% else %}
+                                1
+                            {% endif %}
+                        </div>
+                        <small class="step-label">Personal Info</small>
+                    </div>
+                    <div class="col step-item {% if current_step == 2 %}active{% elif current_step > 2 %}completed{% endif %}">
+                        <div class="step-circle">
+                            {% if current_step > 2 %}
+                                <i class="fas fa-check"></i>
+                            {% else %}
+                                2
+                            {% endif %}
+                        </div>
+                        <small class="step-label">Summary</small>
+                    </div>
+                    <div class="col step-item {% if current_step == 3 %}active{% elif current_step > 3 %}completed{% endif %}">
+                        <div class="step-circle">
+                            {% if current_step > 3 %}
+                                <i class="fas fa-check"></i>
+                            {% else %}
+                                3
+                            {% endif %}
+                        </div>
+                        <small class="step-label">Skills</small>
+                    </div>
+                    <div class="col step-item {% if current_step == 4 %}active{% elif current_step > 4 %}completed{% endif %}">
+                        <div class="step-circle">
+                            {% if current_step > 4 %}
+                                <i class="fas fa-check"></i>
+                            {% else %}
+                                4
+                            {% endif %}
+                        </div>
+                        <small class="step-label">Experience</small>
+                    </div>
+                    <div class="col step-item {% if current_step == 5 %}active{% elif current_step > 5 %}completed{% endif %}">
+                        <div class="step-circle">
+                            {% if current_step > 5 %}
+                                <i class="fas fa-check"></i>
+                            {% else %}
+                                5
+                            {% endif %}
+                        </div>
+                        <small class="step-label">Education</small>
+                    </div>
+                </div>
+                <div class="progress mt-3">
+                    <div class="progress-bar" 
+                         role="progressbar" 
+                         style="width: {{ current_step|floatformat:0|mul:20 }}%"
+                         aria-valuenow="{{ current_step|mul:20 }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wizard Form -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit"></i> Step {{ current_step }}: {{ step_title }}
+                    </h5>
+                    <small class="opacity-75">{{ step_description }}</small>
+                </div>
+                <div class="card-body">
+                    <!-- Auto-save indicator -->
+                    <div id="autosave-indicator" class="alert alert-info d-none">
+                        <i class="fas fa-save"></i> Changes saved automatically
+                    </div>
+
+                    <!-- Form for current step -->
+                    <form id="wizard-step-form" method="post">
+                        {% csrf_token %}
+                        
+                        {% if current_step == 1 %}
+                            <!-- Personal Information -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.full_name.label_tag }}
+                                    {{ form.full_name }}
+                                    {% if form.full_name.errors %}
+                                        <div class="text-danger small">{{ form.full_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.email.label_tag }}
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.phone.label_tag }}
+                                    {{ form.phone }}
+                                    {% if form.phone.errors %}
+                                        <div class="text-danger small">{{ form.phone.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.location.label_tag }}
+                                    {{ form.location }}
+                                    {% if form.location.errors %}
+                                        <div class="text-danger small">{{ form.location.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.linkedin_url.label_tag }}
+                                    {{ form.linkedin_url }}
+                                    {% if form.linkedin_url.errors %}
+                                        <div class="text-danger small">{{ form.linkedin_url.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.portfolio_url.label_tag }}
+                                    {{ form.portfolio_url }}
+                                    {% if form.portfolio_url.errors %}
+                                        <div class="text-danger small">{{ form.portfolio_url.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                        {% elif current_step == 2 %}
+                            <!-- Professional Summary -->
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    {{ form.professional_summary.label_tag }}
+                                    {{ form.professional_summary }}
+                                    <div class="form-text">
+                                        Write a compelling 2-3 sentence summary highlighting your key strengths and career objectives.
+                                    </div>
+                                    {% if form.professional_summary.errors %}
+                                        <div class="text-danger small">{{ form.professional_summary.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.experience_level.label_tag }}
+                                    {{ form.experience_level }}
+                                    {% if form.experience_level.errors %}
+                                        <div class="text-danger small">{{ form.experience_level.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                        {% elif current_step == 3 %}
+                            <!-- Skills -->
+                            <div class="row">
+                                <div class="col-12 mb-4">
+                                    {{ form.technical_skills.label_tag }}
+                                    {{ form.technical_skills }}
+                                    <div class="form-text">
+                                        List your technical skills separated by commas. Examples: Python, JavaScript, React, AWS, SQL
+                                    </div>
+                                    {% if form.technical_skills.errors %}
+                                        <div class="text-danger small">{{ form.technical_skills.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 mb-4">
+                                    {{ form.soft_skills.label_tag }}
+                                    {{ form.soft_skills }}
+                                    <div class="form-text">
+                                        List your soft skills separated by commas. Examples: Leadership, Communication, Problem-solving
+                                    </div>
+                                    {% if form.soft_skills.errors %}
+                                        <div class="text-danger small">{{ form.soft_skills.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 mb-3">
+                                    {{ form.certifications.label_tag }}
+                                    {{ form.certifications }}
+                                    <div class="form-text">
+                                        List any relevant certifications, licenses, or credentials.
+                                    </div>
+                                    {% if form.certifications.errors %}
+                                        <div class="text-danger small">{{ form.certifications.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Skill Suggestions -->
+                            <div class="skill-suggestions">
+                                <h6 class="mb-3">Popular Skills (click to add):</h6>
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <span class="badge bg-outline-primary skill-suggestion" data-type="technical">Python</span>
+                                    <span class="badge bg-outline-primary skill-suggestion" data-type="technical">JavaScript</span>
+                                    <span class="badge bg-outline-primary skill-suggestion" data-type="technical">React</span>
+                                    <span class="badge bg-outline-primary skill-suggestion" data-type="technical">Node.js</span>
+                                    <span class="badge bg-outline-primary skill-suggestion" data-type="technical">AWS</span>
+                                    <span class="badge bg-outline-primary skill-suggestion" data-type="technical">Docker</span>
+                                    <span class="badge bg-outline-primary skill-suggestion" data-type="technical">SQL</span>
+                                    <span class="badge bg-outline-primary skill-suggestion" data-type="technical">Git</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge bg-outline-secondary skill-suggestion" data-type="soft">Leadership</span>
+                                    <span class="badge bg-outline-secondary skill-suggestion" data-type="soft">Communication</span>
+                                    <span class="badge bg-outline-secondary skill-suggestion" data-type="soft">Problem Solving</span>
+                                    <span class="badge bg-outline-secondary skill-suggestion" data-type="soft">Team Collaboration</span>
+                                    <span class="badge bg-outline-secondary skill-suggestion" data-type="soft">Project Management</span>
+                                    <span class="badge bg-outline-secondary skill-suggestion" data-type="soft">Critical Thinking</span>
+                                </div>
+                            </div>
+
+                        {% elif current_step == 4 %}
+                            <!-- Work Experience -->
+                            <div class="row">
+                                <div class="col-12 mb-4">
+                                    {{ form.work_experience.label_tag }}
+                                    {{ form.work_experience }}
+                                    <div class="form-text">
+                                        Format: Job Title | Company | Dates<br>
+                                        • Key responsibility or achievement<br>
+                                        • Another key responsibility
+                                    </div>
+                                    {% if form.work_experience.errors %}
+                                        <div class="text-danger small">{{ form.work_experience.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 mb-3">
+                                    {{ form.achievements.label_tag }}
+                                    {{ form.achievements }}
+                                    <div class="form-text">
+                                        Highlight specific achievements, metrics, awards, or notable projects.
+                                    </div>
+                                    {% if form.achievements.errors %}
+                                        <div class="text-danger small">{{ form.achievements.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                        {% elif current_step == 5 %}
+                            <!-- Education -->
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    {{ form.education.label_tag }}
+                                    {{ form.education }}
+                                    <div class="form-text">
+                                        Format: Degree, Institution, Year<br>
+                                        Include relevant coursework, projects, or academic achievements.
+                                    </div>
+                                    {% if form.education.errors %}
+                                        <div class="text-danger small">{{ form.education.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Navigation Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <div>
+                                {% if current_step > 1 %}
+                                    <a href="?step={{ current_step|add:'-1' }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left"></i> Previous
+                                    </a>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                {% if current_step < 5 %}
+                                    <button type="submit" class="btn btn-primary" id="next-btn">
+                                        Next <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-success" id="finish-btn">
+                                        <i class="fas fa-check"></i> Complete CV
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="mt-4">
+                <div class="card border-0 bg-light">
+                    <div class="card-body">
+                        <h6 class="mb-3">
+                            <i class="fas fa-lightbulb text-warning"></i> 
+                            {% if current_step == 1 %}Tips for Personal Information
+                            {% elif current_step == 2 %}Tips for Professional Summary
+                            {% elif current_step == 3 %}Tips for Skills
+                            {% elif current_step == 4 %}Tips for Work Experience
+                            {% elif current_step == 5 %}Tips for Education
+                            {% endif %}
+                        </h6>
+                        <ul class="mb-0 small">
+                            {% if current_step == 1 %}
+                                <li>Use a professional email address</li>
+                                <li>Include your city and state/country</li>
+                                <li>LinkedIn URL should be your custom URL if available</li>
+                            {% elif current_step == 2 %}
+                                <li>Keep it concise - 2-3 sentences maximum</li>
+                                <li>Focus on your key strengths and value proposition</li>
+                                <li>Avoid generic statements - be specific about what you offer</li>
+                            {% elif current_step == 3 %}
+                                <li>List skills relevant to your target positions</li>
+                                <li>Include both hard skills (technical) and soft skills</li>
+                                <li>Use industry-standard terminology</li>
+                            {% elif current_step == 4 %}
+                                <li>Start with your most recent position</li>
+                                <li>Use action verbs and quantify achievements when possible</li>
+                                <li>Focus on accomplishments, not just responsibilities</li>
+                            {% elif current_step == 5 %}
+                                <li>Include degree, institution, and graduation year</li>
+                                <li>Mention relevant coursework for recent graduates</li>
+                                <li>Include GPA only if it's 3.5 or higher</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Wizard Progress Styling */
+.wizard-progress .step-item {
+    position: relative;
+}
+
+.wizard-progress .step-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    right: -50%;
+    height: 2px;
+    background-color: var(--border-color);
+    z-index: 1;
+}
+
+.wizard-progress .step-item.completed:not(:last-child)::after {
+    background-color: var(--success-state);
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    color: var(--text-muted);
+    font-weight: bold;
+    position: relative;
+    z-index: 2;
+}
+
+.step-item.active .step-circle {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.step-item.completed .step-circle {
+    background-color: var(--success-state);
+    border-color: var(--success-state);
+    color: white;
+}
+
+.step-label {
+    display: block;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.step-item.active .step-label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.step-item.completed .step-label {
+    color: var(--success-state);
+}
+
+/* Progress Bar */
+.progress {
+    height: 6px;
+    background-color: var(--progress-bg);
+}
+
+.progress-bar {
+    background-color: var(--primary-color);
+    transition: width 0.6s ease;
+}
+
+/* Skill Suggestions */
+.skill-suggestions {
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.skill-suggestion {
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.skill-suggestion:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Form Styling */
+.form-control,
+.form-select {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--text-primary);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
+}
+
+/* Card Styling */
+.card {
+    border: 1px solid var(--card-border);
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+}
+
+.card-header {
+    background-color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Auto-save indicator */
+#autosave-indicator {
+    background-color: var(--success-state-10);
+    border-color: var(--success-state);
+    color: var(--success-state);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .wizard-progress .step-item {
+        margin-bottom: 1rem;
+    }
+    
+    .wizard-progress .step-item:not(:last-child)::after {
+        display: none;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .step-label {
+        font-size: 0.75rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('wizard-step-form');
+    const autosaveIndicator = document.getElementById('autosave-indicator');
+    let autosaveTimeout;
+    const currentStep = {{ current_step }};
+    
+    // Auto-save functionality
+    function setupAutosave() {
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                clearTimeout(autosaveTimeout);
+                autosaveTimeout = setTimeout(saveProgress, 2000); // Save after 2 seconds of inactivity
+            });
+        });
+    }
+    
+    async function saveProgress() {
+        const formData = new FormData(form);
+        formData.append('step', currentStep);
+        
+        try {
+            const response = await fetch('{% url "jobassistant:save_wizard_step" %}', {
+                method: 'POST',
+                body: JSON.stringify({
+                    step: currentStep,
+                    form_data: Object.fromEntries(formData.entries())
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            });
+            
+            if (response.ok) {
+                showAutosaveIndicator();
+            }
+        } catch (error) {
+            console.error('Auto-save failed:', error);
+        }
+    }
+    
+    function showAutosaveIndicator() {
+        autosaveIndicator.classList.remove('d-none');
+        setTimeout(() => {
+            autosaveIndicator.classList.add('d-none');
+        }, 2000);
+    }
+    
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        formData.append('step', currentStep);
+        
+        try {
+            const response = await fetch('{% url "jobassistant:save_wizard_step" %}', {
+                method: 'POST',
+                body: JSON.stringify({
+                    step: currentStep,
+                    form_data: Object.fromEntries(formData.entries())
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (currentStep < 5) {
+                    // Go to next step
+                    window.location.href = `?step=${currentStep + 1}`;
+                } else {
+                    // Wizard complete, redirect to profile
+                    showNotification('CV created successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = `{% url "jobassistant:cv_profile" profile_id="PLACEHOLDER" %}`.replace('PLACEHOLDER', data.profile_id);
+                    }, 1000);
+                }
+            } else {
+                showNotification('Error saving step: ' + (data.error || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            showNotification('Error: ' + error.message, 'error');
+        }
+    });
+    
+    // Skill suggestions
+    document.querySelectorAll('.skill-suggestion').forEach(skill => {
+        skill.addEventListener('click', function() {
+            const skillName = this.textContent;
+            const skillType = this.dataset.type;
+            
+            let targetField;
+            if (skillType === 'technical') {
+                targetField = form.querySelector('[name="technical_skills"]');
+            } else {
+                targetField = form.querySelector('[name="soft_skills"]');
+            }
+            
+            if (targetField) {
+                let currentValue = targetField.value;
+                if (currentValue && !currentValue.endsWith(', ')) {
+                    currentValue += ', ';
+                }
+                
+                if (!currentValue.includes(skillName)) {
+                    targetField.value = currentValue + skillName;
+                    this.style.opacity = '0.5';
+                    this.style.pointerEvents = 'none';
+                    
+                    // Trigger auto-save
+                    clearTimeout(autosaveTimeout);
+                    autosaveTimeout = setTimeout(saveProgress, 500);
+                }
+            }
+        });
+    });
+    
+    // Initialize auto-save
+    setupAutosave();
+});
+</script>
+{% endblock %}

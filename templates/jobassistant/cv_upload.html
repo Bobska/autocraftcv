@@ -1,0 +1,345 @@
+{% extends 'jobassistant/base.html' %}
+
+{% block title %}Upload CV - AutoCraftCV{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h2 class="mb-3">
+                    <i class="fas fa-cloud-upload-alt text-primary"></i> Upload Your CV
+                </h2>
+                <p class="text-muted">
+                    Upload your existing CV and we'll automatically extract your information to create a comprehensive profile.
+                </p>
+            </div>
+
+            <!-- Upload Form -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-upload"></i> CV File Upload
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Upload Progress (Hidden by default) -->
+                    <div id="upload-progress-container" class="mb-4" style="display: none;">
+                        <h6 class="mb-3">Processing your CV...</h6>
+                        <div class="progress-tracker">
+                            <!-- Progress UI will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Upload Form -->
+                    <form id="cv-upload-form" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Drag and Drop Area -->
+                        <div class="file-upload-area text-center py-5 mb-4" 
+                             onclick="document.getElementById('cv-file-input').click()">
+                            <div class="upload-icon mb-3">
+                                <i class="fas fa-cloud-upload-alt fa-4x text-primary"></i>
+                            </div>
+                            <h5 class="mb-2">Drag and drop your CV here</h5>
+                            <p class="text-muted mb-3">or click to browse files</p>
+                            
+                            <div class="supported-formats mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-check-circle text-success"></i> PDF &nbsp;
+                                    <i class="fas fa-check-circle text-success"></i> Word (DOC/DOCX) &nbsp;
+                                    <i class="fas fa-info-circle text-info"></i> Max 10MB
+                                </small>
+                            </div>
+                            
+                            <input type="file" 
+                                   id="cv-file-input" 
+                                   name="cv_file" 
+                                   accept=".pdf,.doc,.docx" 
+                                   class="d-none" 
+                                   required>
+                            
+                            <div class="upload-feedback"></div>
+                        </div>
+
+                        <!-- File Info Display (Hidden by default) -->
+                        <div id="file-info" class="alert alert-info d-none">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file-alt fa-2x me-3"></i>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1" id="file-name"></h6>
+                                    <small class="text-muted" id="file-size"></small>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFile()">
+                                    <i class="fas fa-times"></i> Remove
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Upload Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="upload-btn" disabled>
+                                <i class="fas fa-upload"></i> Upload and Parse CV
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- OR Divider -->
+            <div class="text-center my-4">
+                <span class="badge bg-secondary px-3 py-2">OR</span>
+            </div>
+
+            <!-- Alternative Action -->
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="mb-3">Don't have a CV ready?</h5>
+                    <p class="text-muted mb-4">
+                        Create a professional CV from scratch using our step-by-step wizard.
+                    </p>
+                    <a href="{% url 'jobassistant:cv_wizard' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus-circle"></i> Create CV Manually
+                    </a>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="mt-4">
+                <div class="card border-0 bg-light">
+                    <div class="card-body">
+                        <h6 class="mb-3">
+                            <i class="fas fa-lightbulb text-warning"></i> Tips for best results
+                        </h6>
+                        <ul class="mb-0 small">
+                            <li>Use a well-structured CV with clear sections</li>
+                            <li>Ensure text is selectable (not scanned images)</li>
+                            <li>Include contact information, work experience, and skills</li>
+                            <li>PDF format generally provides better parsing results</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Upload Area Styling */
+.file-upload-area {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-medium);
+}
+
+.file-upload-area:hover,
+.file-upload-area.dragover {
+    border-color: var(--primary-color);
+    background-color: var(--primary-color-10);
+    transform: translateY(-2px);
+}
+
+.file-upload-area .upload-icon {
+    transition: transform var(--transition-medium);
+}
+
+.file-upload-area:hover .upload-icon {
+    transform: scale(1.1);
+}
+
+.supported-formats {
+    padding: 10px;
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.upload-feedback {
+    margin-top: 1rem;
+    color: var(--success-state);
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity var(--transition-medium);
+}
+
+/* Progress Tracking Styles */
+.progress-tracker {
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+/* Card Styling */
+.card {
+    border: 1px solid var(--card-border);
+    background-color: var(--card-bg);
+    box-shadow: var(--card-shadow);
+}
+
+.card-header {
+    background-color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .file-upload-area {
+        padding: 2rem 1rem !important;
+    }
+    
+    .file-upload-area .fa-4x {
+        font-size: 2.5rem !important;
+    }
+    
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* Animation for file selection */
+@keyframes fileSelected {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.file-selected {
+    animation: fileSelected 0.3s ease;
+    border-color: var(--success-state) !important;
+    background-color: var(--success-state-10) !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('cv-upload-form');
+    const fileInput = document.getElementById('cv-file-input');
+    const uploadBtn = document.getElementById('upload-btn');
+    const uploadArea = document.querySelector('.file-upload-area');
+    const fileInfo = document.getElementById('file-info');
+    const progressContainer = document.getElementById('upload-progress-container');
+    
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            displayFileInfo(file);
+            uploadBtn.disabled = false;
+            uploadArea.classList.add('file-selected');
+            
+            // Show upload feedback
+            const feedback = uploadArea.querySelector('.upload-feedback');
+            feedback.textContent = `Selected: ${file.name}`;
+            feedback.style.opacity = '1';
+        }
+    });
+    
+    // Form submission handler
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!fileInput.files[0]) {
+            showNotification('Please select a file first', 'error');
+            return;
+        }
+        
+        uploadCV();
+    });
+    
+    function displayFileInfo(file) {
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        fileInfo.classList.remove('d-none');
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    function clearFile() {
+        fileInput.value = '';
+        fileInfo.classList.add('d-none');
+        uploadBtn.disabled = true;
+        uploadArea.classList.remove('file-selected');
+        
+        // Hide upload feedback
+        const feedback = uploadArea.querySelector('.upload-feedback');
+        feedback.style.opacity = '0';
+    }
+    
+    async function uploadCV() {
+        const formData = new FormData();
+        formData.append('cv_file', fileInput.files[0]);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        // Disable form and show progress
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Uploading...';
+        progressContainer.style.display = 'block';
+        
+        try {
+            // Start upload
+            const response = await fetch('{% url "jobassistant:upload_cv_with_progress" %}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Start progress tracking
+                window.progressTracker.track(data.task_id, {
+                    progressContainer: progressContainer.querySelector('.progress-tracker'),
+                    onComplete: function(progressData) {
+                        showNotification('CV uploaded and processed successfully!', 'success');
+                        
+                        // Redirect to profile view
+                        if (progressData.profile_url) {
+                            setTimeout(() => {
+                                window.location.href = progressData.profile_url;
+                            }, 1000);
+                        } else {
+                            // Fallback to dashboard
+                            setTimeout(() => {
+                                window.location.href = '{% url "jobassistant:cv_dashboard" %}';
+                            }, 1000);
+                        }
+                    },
+                    onError: function(error) {
+                        showNotification('Upload failed: ' + (error.error || 'Unknown error'), 'error');
+                        resetForm();
+                    }
+                });
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+            
+        } catch (error) {
+            showNotification('Upload failed: ' + error.message, 'error');
+            resetForm();
+        }
+    }
+    
+    function resetForm() {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload and Parse CV';
+        progressContainer.style.display = 'none';
+    }
+    
+    // Make clearFile available globally
+    window.clearFile = clearFile;
+});
+</script>
+{% endblock %}

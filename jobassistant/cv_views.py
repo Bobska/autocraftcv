@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.urls import reverse
 
 from .models import UserProfile, JobPosting, ProgressTask, WorkExperience, Education, Skill
-from .forms import PersonalInfoForm, ProfessionalProfileForm, ComprehensiveCVForm
+from .forms import PersonalInfoForm, ProfessionalProfileForm, ComprehensiveCVForm, SkillsForm
 
 logger = logging.getLogger(__name__)
 
@@ -142,8 +142,8 @@ class CVCreationWizardView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Get current step from URL
-        step = self.kwargs.get('step', '1')
+        # Get current step from URL query parameter
+        step = self.request.GET.get('step', '1')
         context['current_step'] = int(step)
         
         # Get existing profile for pre-population
@@ -154,12 +154,27 @@ class CVCreationWizardView(TemplateView):
             # Personal Information
             context['form'] = PersonalInfoForm(instance=user_profile)
             context['step_title'] = 'Personal Information'
-            context['step_description'] = 'Enter your contact details'
+            context['step_description'] = 'Enter your contact details and basic information'
         elif step == '2':
             # Professional Summary
             context['form'] = ProfessionalProfileForm(instance=user_profile)
             context['step_title'] = 'Professional Summary'
-            context['step_description'] = 'Describe your professional background'
+            context['step_description'] = 'Describe your professional background and goals'
+        elif step == '3':
+            # Skills
+            context['form'] = SkillsForm(instance=user_profile)
+            context['step_title'] = 'Skills & Expertise'
+            context['step_description'] = 'List your technical and soft skills'
+        elif step == '4':
+            # Work Experience (for now, just use a simple form)
+            context['form'] = PersonalInfoForm(instance=user_profile)
+            context['step_title'] = 'Work Experience'
+            context['step_description'] = 'Add your work history and achievements'
+        elif step == '5':
+            # Education
+            context['form'] = PersonalInfoForm(instance=user_profile)
+            context['step_title'] = 'Education & Qualifications'
+            context['step_description'] = 'Add your educational background'
         else:
             # Use PersonalInfoForm as fallback
             context['form'] = PersonalInfoForm(instance=user_profile)
@@ -279,8 +294,18 @@ def save_wizard_step(request):
         return JsonResponse({'error': 'POST method required'}, status=405)
     
     try:
-        step = request.POST.get('step')
-        form_data = request.POST.dict()
+        import json
+        
+        # Handle both JSON and form data
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            step = data.get('step')
+            form_data = data.get('form_data', {})
+            save_as_draft = data.get('save_as_draft', False)
+        else:
+            step = request.POST.get('step')
+            form_data = request.POST.dict()
+            save_as_draft = request.POST.get('save_as_draft', False)
         
         # Get or create user profile
         if request.user.is_authenticated:
@@ -291,6 +316,12 @@ def save_wizard_step(request):
                 request.session.create()
                 session_key = request.session.session_key
             profile, created = UserProfile.objects.get_or_create(session_key=session_key)
+        
+        # Set profile status based on save type
+        if save_as_draft:
+            profile.profile_status = 'draft'
+        else:
+            profile.profile_status = 'active'
         
         # Update profile based on step
         if step == '1':
@@ -303,19 +334,63 @@ def save_wizard_step(request):
                 profile.email = form_data['email']
             if 'mobile_phone' in form_data:
                 profile.mobile_phone = form_data['mobile_phone']
+            if 'address_line_1' in form_data:
+                profile.address_line_1 = form_data['address_line_1']
+            if 'city' in form_data:
+                profile.city = form_data['city']
+            if 'state_region' in form_data:
+                profile.state_region = form_data['state_region']
+            if 'country' in form_data:
+                profile.country = form_data['country']
+            if 'linkedin_url' in form_data:
+                profile.linkedin_url = form_data['linkedin_url']
+                
         elif step == '2':
             # Professional Profile
             if 'professional_summary' in form_data:
                 profile.professional_summary = form_data['professional_summary']
             if 'career_objectives' in form_data:
                 profile.career_objectives = form_data['career_objectives']
+            if 'experience_level' in form_data:
+                profile.experience_level = form_data['experience_level']
+                
+        elif step == '3':
+            # Skills - handle as related model
+            if 'technical_skills' in form_data:
+                # Parse comma-separated skills and create Skill objects
+                tech_skills = [skill.strip() for skill in form_data['technical_skills'].split(',') if skill.strip()]
+                # Remove existing technical skills
+                profile.skills.filter(category='technical').delete()
+                # Create new technical skills
+                for skill_name in tech_skills:
+                    Skill.objects.create(
+                        profile=profile,
+                        name=skill_name,
+                        category='technical'
+                    )
+                    
+            if 'soft_skills' in form_data:
+                # Parse comma-separated skills and create Skill objects
+                soft_skills = [skill.strip() for skill in form_data['soft_skills'].split(',') if skill.strip()]
+                # Remove existing soft skills
+                profile.skills.filter(category='soft').delete()
+                # Create new soft skills
+                for skill_name in soft_skills:
+                    Skill.objects.create(
+                        profile=profile,
+                        name=skill_name,
+                        category='soft'
+                    )
         
         profile.save()
         
+        status_message = 'Draft saved successfully' if save_as_draft else f'Step {step} saved successfully'
+        
         return JsonResponse({
             'success': True,
-            'message': f'Step {step} saved successfully',
-            'profile_id': str(profile.id)
+            'message': status_message,
+            'profile_id': str(profile.id),
+            'is_draft': save_as_draft
         })
         
     except Exception as e:

@@ -608,3 +608,44 @@ class ComprehensiveCVForm(forms.ModelForm):
             'drivers_license': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'willing_to_relocate': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class SkillsForm(forms.Form):
+    """Form for skills section in CV wizard"""
+    
+    technical_skills = forms.CharField(
+        max_length=1000,
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Python, JavaScript, React, AWS, SQL, Git, etc. (separate with commas)'
+        }),
+        help_text='List your technical skills separated by commas'
+    )
+    
+    soft_skills = forms.CharField(
+        max_length=1000,
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Leadership, Communication, Problem-solving, Team management, etc. (separate with commas)'
+        }),
+        help_text='List your soft skills separated by commas'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        # Extract user_profile if provided
+        user_profile = kwargs.pop('instance', None)
+        super().__init__(*args, **kwargs)
+        
+        if user_profile:
+            # Pre-populate with existing skills
+            technical_skills = user_profile.skills.filter(category='technical').values_list('name', flat=True)
+            soft_skills = user_profile.skills.filter(category='soft').values_list('name', flat=True)
+            
+            if technical_skills:
+                self.fields['technical_skills'].initial = ', '.join(technical_skills)
+            if soft_skills:
+                self.fields['soft_skills'].initial = ', '.join(soft_skills)

@@ -103,10 +103,17 @@
                             <!-- Personal Information -->
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    {{ form.full_name.label_tag }}
-                                    {{ form.full_name }}
-                                    {% if form.full_name.errors %}
-                                        <div class="text-danger small">{{ form.full_name.errors.0 }}</div>
+                                    {{ form.first_name.label_tag }}
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                        <div class="text-danger small">{{ form.first_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.last_name.label_tag }}
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                        <div class="text-danger small">{{ form.last_name.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -117,17 +124,38 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    {{ form.phone.label_tag }}
-                                    {{ form.phone }}
-                                    {% if form.phone.errors %}
-                                        <div class="text-danger small">{{ form.phone.errors.0 }}</div>
+                                    {{ form.mobile_phone.label_tag }}
+                                    {{ form.mobile_phone }}
+                                    {% if form.mobile_phone.errors %}
+                                        <div class="text-danger small">{{ form.mobile_phone.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    {{ form.location.label_tag }}
-                                    {{ form.location }}
-                                    {% if form.location.errors %}
-                                        <div class="text-danger small">{{ form.location.errors.0 }}</div>
+                                    {{ form.address_line_1.label_tag }}
+                                    {{ form.address_line_1 }}
+                                    {% if form.address_line_1.errors %}
+                                        <div class="text-danger small">{{ form.address_line_1.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.city.label_tag }}
+                                    {{ form.city }}
+                                    {% if form.city.errors %}
+                                        <div class="text-danger small">{{ form.city.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.state_region.label_tag }}
+                                    {{ form.state_region }}
+                                    {% if form.state_region.errors %}
+                                        <div class="text-danger small">{{ form.state_region.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.country.label_tag }}
+                                    {{ form.country }}
+                                    {% if form.country.errors %}
+                                        <div class="text-danger small">{{ form.country.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -280,14 +308,25 @@
                                 {% endif %}
                             </div>
                             
-                            <div>
+                            <div class="d-flex gap-2">
+                                <!-- Save as Draft Button -->
+                                <button type="button" class="btn btn-outline-warning" id="save-draft-btn">
+                                    <i class="fas fa-save"></i> Save as Draft
+                                </button>
+                                
                                 {% if current_step < 5 %}
+                                    <!-- Skip/Next Button (no validation) -->
+                                    <a href="?step={{ current_step|add:'1' }}" class="btn btn-outline-primary">
+                                        Skip <i class="fas fa-arrow-right"></i>
+                                    </a>
+                                    <!-- Save & Next Button (with validation) -->
                                     <button type="submit" class="btn btn-primary" id="next-btn">
-                                        Next <i class="fas fa-arrow-right"></i>
+                                        Save & Next <i class="fas fa-arrow-right"></i>
                                     </button>
                                 {% else %}
+                                    <!-- Final Save Button (with full validation) -->
                                     <button type="submit" class="btn btn-success" id="finish-btn">
-                                        <i class="fas fa-check"></i> Complete CV
+                                        <i class="fas fa-check"></i> Save & Complete CV
                                     </button>
                                 {% endif %}
                             </div>
@@ -377,9 +416,9 @@
 }
 
 .step-item.active .step-circle {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: white;
+    background-color: var(--btn-primary-bg);
+    border-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
 }
 
 .step-item.completed .step-circle {
@@ -395,7 +434,7 @@
 }
 
 .step-item.active .step-label {
-    color: var(--primary-color);
+    color: var(--btn-primary-bg);
     font-weight: 600;
 }
 
@@ -410,7 +449,7 @@
 }
 
 .progress-bar {
-    background-color: var(--primary-color);
+    background-color: var(--btn-primary-bg);
     transition: width 0.6s ease;
 }
 
@@ -431,7 +470,7 @@
 }
 
 .skill-suggestion:hover {
-    background-color: var(--primary-color);
+    background-color: var(--btn-primary-bg);
     color: white;
     transform: translateY(-1px);
 }
@@ -458,13 +497,13 @@
 }
 
 .card-header {
-    background-color: var(--primary-color);
+    background-color: var(--btn-primary-bg);
     border-bottom: 1px solid var(--border-color);
 }
 
 /* Auto-save indicator */
 #autosave-indicator {
-    background-color: var(--success-state-10);
+    background-color: var(--alert-success-bg);
     border-color: var(--success-state);
     color: var(--success-state);
 }
@@ -487,6 +526,15 @@
     .step-label {
         font-size: 0.75rem;
     }
+}
+
+/* Gap utility classes */
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.gap-3 {
+    gap: 1rem;
 }
 </style>
 
@@ -570,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Wizard complete, redirect to profile
                     showNotification('CV created successfully!', 'success');
                     setTimeout(() => {
-                        window.location.href = `{% url "jobassistant:cv_profile" profile_id="PLACEHOLDER" %}`.replace('PLACEHOLDER', data.profile_id);
+                        window.location.href = '/cv/profile/' + data.profile_id + '/';
                     }, 1000);
                 }
             } else {
@@ -580,6 +628,50 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification('Error: ' + error.message, 'error');
         }
     });
+    
+    // Save as Draft functionality
+    const saveDraftBtn = document.getElementById('save-draft-btn');
+    if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', async function() {
+            const formData = new FormData(form);
+            formData.append('step', currentStep);
+            formData.append('save_as_draft', 'true');
+            
+            // Show loading state
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            this.disabled = true;
+            
+            try {
+                const response = await fetch('{% url "jobassistant:save_wizard_step" %}', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        step: currentStep,
+                        form_data: Object.fromEntries(formData.entries()),
+                        save_as_draft: true
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Draft saved successfully!', 'success');
+                } else {
+                    showNotification('Error saving draft: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            } finally {
+                // Restore button state
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }
+        });
+    }
     
     // Skill suggestions
     document.querySelectorAll('.skill-suggestion').forEach(skill => {

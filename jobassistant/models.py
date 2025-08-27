@@ -61,6 +61,12 @@ class UserProfile(models.Model):
         ('1_month', '1 Month'),
         ('negotiable', 'Negotiable'),
     ]
+    
+    PROFILE_STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('active', 'Active'),
+        ('archived', 'Archived'),
+    ]
 
     # Primary Key and User Association
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -111,6 +117,7 @@ class UserProfile(models.Model):
     # Completion tracking
     profile_completion_percentage = models.PositiveIntegerField(default=0)
     sections_completed = models.JSONField(default=dict, blank=True)
+    profile_status = models.CharField(max_length=20, choices=PROFILE_STATUS_CHOICES, default='draft')
     
     # Metadata
     created_at = models.DateTimeField(default=timezone.now)

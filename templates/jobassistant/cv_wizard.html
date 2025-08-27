@@ -73,8 +73,8 @@
                 <div class="progress mt-3">
                     <div class="progress-bar" 
                          role="progressbar" 
-                         style="width: {{ current_step|floatformat:0|mul:20 }}%"
-                         aria-valuenow="{{ current_step|mul:20 }}" 
+                         style="width: {% widthratio current_step 5 100 %}%"
+                         aria-valuenow="{% widthratio current_step 5 100 %}" 
                          aria-valuemin="0" 
                          aria-valuemax="100">
                     </div>

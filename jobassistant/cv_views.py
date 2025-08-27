@@ -217,6 +217,7 @@ class CVCreationWizardView(TemplateView):
         
         # Handle different step forms
         form_valid = False
+        form = None
         
         if current_step == 1:
             form = PersonalInfoForm(request.POST, instance=user_profile)
@@ -227,6 +228,7 @@ class CVCreationWizardView(TemplateView):
                 form_valid = True
             else:
                 print(f"DEBUG WIZARD: Step 1 form errors: {form.errors}")
+                
         elif current_step == 2:
             form = ProfessionalProfileForm(request.POST, instance=user_profile)
             print(f"DEBUG WIZARD: Step 2 form data: {dict(request.POST)}")
@@ -236,46 +238,57 @@ class CVCreationWizardView(TemplateView):
                 form_valid = True
             else:
                 print(f"DEBUG WIZARD: Step 2 form errors: {form.errors}")
+                
         elif current_step == 3:
             form = SkillsForm(request.POST, instance=user_profile)
             print(f"DEBUG WIZARD: Step 3 form data: {dict(request.POST)}")
             if form.is_valid():
-                self._save_skills_form(form, user_profile)
+                form.save(user_profile)
                 print(f"DEBUG WIZARD: Step 3 saved successfully. Skills count after save: {user_profile.skills.count()}")
                 form_valid = True
             else:
                 print(f"DEBUG WIZARD: Step 3 form errors: {form.errors}")
+                
         elif current_step == 4:
             form = WorkExperienceWizardForm(request.POST, instance=user_profile)
             print(f"DEBUG WIZARD: Step 4 form data: {dict(request.POST)}")
             if form.is_valid():
-                self._save_work_experience_form(form, user_profile)
+                form.save(user_profile)
                 print(f"DEBUG WIZARD: Step 4 saved successfully. Work exp count: {user_profile.work_experiences.count()}")
                 form_valid = True
             else:
                 print(f"DEBUG WIZARD: Step 4 form errors: {form.errors}")
+                
         elif current_step == 5:
             form = EducationWizardForm(request.POST, instance=user_profile)
             print(f"DEBUG WIZARD: Step 5 form data: {dict(request.POST)}")
             if form.is_valid():
-                self._save_education_form(form, user_profile)
+                form.save(user_profile)
                 print(f"DEBUG WIZARD: Step 5 saved successfully. Education count: {user_profile.education_entries.count()}")
                 form_valid = True
             else:
                 print(f"DEBUG WIZARD: Step 5 form errors: {form.errors}")
         else:
+            # Fallback for unknown steps
             form = PersonalInfoForm(request.POST, instance=user_profile)
+            print(f"DEBUG WIZARD: Fallback step form")
             if form.is_valid():
                 form.save()
                 form_valid = True
+            else:
+                print(f"DEBUG WIZARD: Fallback form errors: {form.errors}")
         
         # Handle step completion if form was valid
         if form_valid:
+            print(f"DEBUG WIZARD: Form valid, handling step completion for step {current_step}")
             return self._handle_step_completion(request, current_step, user_profile)
+        else:
+            print(f"DEBUG WIZARD: Form invalid, redisplaying with errors")
         
         # If form is invalid, redisplay with errors
         context = self.get_context_data(**kwargs)
         context['form'] = form
+        context['current_step'] = current_step
         return render(request, self.template_name, context)
     
     def _handle_step_completion(self, request, current_step, user_profile):
@@ -293,32 +306,34 @@ class CVCreationWizardView(TemplateView):
     
     def _save_skills_form(self, form, user_profile):
         """Save skills form data"""
-        from datetime import datetime
-        
-        # Clear existing skills
-        user_profile.skills.all().delete()
-        
-        # Save technical skills
-        technical_skills = form.cleaned_data.get('technical_skills', '')
-        if technical_skills:
-            skills = [skill.strip() for skill in technical_skills.split(',') if skill.strip()]
-            for skill_name in skills:
-                Skill.objects.create(
-                    profile=user_profile,
-                    name=skill_name,
-                    category='technical'
-                )
-        
-        # Save soft skills
-        soft_skills = form.cleaned_data.get('soft_skills', '')
-        if soft_skills:
-            skills = [skill.strip() for skill in soft_skills.split(',') if skill.strip()]
-            for skill_name in skills:
-                Skill.objects.create(
-                    profile=user_profile,
-                    name=skill_name,
-                    category='soft'
-                )
+        try:
+            # Clear existing skills
+            user_profile.skills.all().delete()
+            
+            # Save technical skills
+            technical_skills = form.cleaned_data.get('technical_skills', '')
+            if technical_skills:
+                skills = [skill.strip() for skill in technical_skills.split(',') if skill.strip()]
+                for skill_name in skills:
+                    Skill.objects.create(
+                        profile=user_profile,
+                        name=skill_name,
+                        category='technical'
+                    )
+            
+            # Save soft skills
+            soft_skills = form.cleaned_data.get('soft_skills', '')
+            if soft_skills:
+                skills = [skill.strip() for skill in soft_skills.split(',') if skill.strip()]
+                for skill_name in skills:
+                    Skill.objects.create(
+                        profile=user_profile,
+                        name=skill_name,
+                        category='soft'
+                    )
+            print(f"DEBUG: Skills saved successfully. Total skills: {user_profile.skills.count()}")
+        except Exception as e:
+            print(f"DEBUG: Error saving skills: {str(e)}")
     
     def _save_work_experience_form(self, form, user_profile):
         """Save work experience form data"""

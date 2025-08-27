@@ -640,6 +640,48 @@ class SkillsForm(forms.Form):
         user_profile = kwargs.pop('instance', None)
         super().__init__(*args, **kwargs)
         
+        # Pre-populate fields if user_profile is provided
+        if user_profile:
+            # Get existing skills
+            technical_skills = list(user_profile.skills.filter(category='technical').values_list('name', flat=True))
+            soft_skills = list(user_profile.skills.filter(category='soft').values_list('name', flat=True))
+            
+            # Set initial values
+            if technical_skills:
+                self.fields['technical_skills'].initial = ', '.join(technical_skills)
+            if soft_skills:
+                self.fields['soft_skills'].initial = ', '.join(soft_skills)
+    
+    def save(self, user_profile):
+        """Save skills to user profile"""
+        from .models import Skill
+        
+        # Clear existing skills
+        user_profile.skills.all().delete()
+        
+        # Process technical skills
+        technical_skills_text = self.cleaned_data.get('technical_skills', '')
+        if technical_skills_text:
+            for skill_name in [s.strip() for s in technical_skills_text.split(',') if s.strip()]:
+                Skill.objects.create(
+                    profile=user_profile,
+                    name=skill_name,
+                    category='technical'
+                )
+        
+        # Process soft skills
+        soft_skills_text = self.cleaned_data.get('soft_skills', '')
+        if soft_skills_text:
+            for skill_name in [s.strip() for s in soft_skills_text.split(',') if s.strip()]:
+                Skill.objects.create(
+                    profile=user_profile,
+                    name=skill_name,
+                    category='soft'
+                )
+        
+        return user_profile
+        super().__init__(*args, **kwargs)
+        
         if user_profile:
             # Pre-populate with existing skills
             technical_skills = user_profile.skills.filter(category='technical').values_list('name', flat=True)
@@ -746,6 +788,31 @@ class WorkExperienceWizardForm(forms.Form):
                 self.fields['key_responsibilities'].initial = latest_work.key_responsibilities
                 self.fields['key_achievements'].initial = latest_work.key_achievements
 
+    def save(self, user_profile):
+        """Save work experience to user profile"""
+        from .models import WorkExperience
+        
+        # Only create if there's meaningful data
+        job_title = self.cleaned_data.get('job_title', '').strip()
+        company_name = self.cleaned_data.get('company_name', '').strip()
+        
+        if job_title or company_name:
+            work_exp = WorkExperience.objects.create(
+                profile=user_profile,
+                job_title=job_title,
+                company_name=company_name,
+                company_location=self.cleaned_data.get('company_location', ''),
+                employment_type=self.cleaned_data.get('employment_type', ''),
+                start_date=self.cleaned_data.get('start_date'),
+                end_date=self.cleaned_data.get('end_date'),
+                currently_working=self.cleaned_data.get('currently_working', False),
+                key_responsibilities=self.cleaned_data.get('key_responsibilities', ''),
+                key_achievements=self.cleaned_data.get('key_achievements', '')
+            )
+            return work_exp
+        
+        return None
+
 
 class EducationWizardForm(forms.Form):
     """Simplified form for education in CV wizard"""
@@ -836,3 +903,28 @@ class EducationWizardForm(forms.Form):
                 self.fields['gpa_grade'].initial = latest_education.gpa_grade
                 self.fields['relevant_coursework'].initial = latest_education.relevant_coursework
                 self.fields['academic_achievements'].initial = latest_education.academic_achievements
+
+    def save(self, user_profile):
+        """Save education to user profile"""
+        from .models import Education
+        
+        # Only create if there's meaningful data
+        degree_type = self.cleaned_data.get('degree_type', '').strip()
+        field_of_study = self.cleaned_data.get('field_of_study', '').strip()
+        institution_name = self.cleaned_data.get('institution_name', '').strip()
+        
+        if degree_type or field_of_study or institution_name:
+            education = Education.objects.create(
+                profile=user_profile,
+                degree_type=degree_type,
+                field_of_study=field_of_study,
+                institution_name=institution_name,
+                institution_location=self.cleaned_data.get('institution_location', ''),
+                graduation_year=self.cleaned_data.get('graduation_year'),
+                gpa_grade=self.cleaned_data.get('gpa_grade', ''),
+                relevant_coursework=self.cleaned_data.get('relevant_coursework', ''),
+                academic_achievements=self.cleaned_data.get('academic_achievements', '')
+            )
+            return education
+        
+        return None

@@ -11,7 +11,10 @@ from django.http import JsonResponse
 from django.urls import reverse
 
 from .models import UserProfile, JobPosting, ProgressTask, WorkExperience, Education, Skill
-from .forms import PersonalInfoForm, ProfessionalProfileForm, ComprehensiveCVForm, SkillsForm
+from .forms import (
+    PersonalInfoForm, ProfessionalProfileForm, ComprehensiveCVForm, 
+    SkillsForm, WorkExperienceWizardForm, EducationWizardForm
+)
 
 logger = logging.getLogger(__name__)
 
@@ -166,13 +169,13 @@ class CVCreationWizardView(TemplateView):
             context['step_title'] = 'Skills & Expertise'
             context['step_description'] = 'List your technical and soft skills'
         elif step == '4':
-            # Work Experience (for now, just use a simple form)
-            context['form'] = PersonalInfoForm(instance=user_profile)
+            # Work Experience
+            context['form'] = WorkExperienceWizardForm(instance=user_profile)
             context['step_title'] = 'Work Experience'
             context['step_description'] = 'Add your work history and achievements'
         elif step == '5':
             # Education
-            context['form'] = PersonalInfoForm(instance=user_profile)
+            context['form'] = EducationWizardForm(instance=user_profile)
             context['step_title'] = 'Education & Qualifications'
             context['step_description'] = 'Add your educational background'
         else:
@@ -381,6 +384,81 @@ def save_wizard_step(request):
                         name=skill_name,
                         category='soft'
                     )
+                    
+        elif step == '4':
+            # Work Experience - create or update the most recent entry
+            if any(key in form_data for key in ['job_title', 'company_name', 'start_date']):
+                # Get or create the most recent work experience
+                work_exp = profile.work_experiences.first()
+                
+                if not work_exp:
+                    work_exp = WorkExperience(profile=profile)
+                
+                # Update fields if provided
+                if 'job_title' in form_data and form_data['job_title']:
+                    work_exp.job_title = form_data['job_title']
+                if 'company_name' in form_data and form_data['company_name']:
+                    work_exp.company_name = form_data['company_name']
+                if 'company_location' in form_data and form_data['company_location']:
+                    work_exp.company_location = form_data['company_location']
+                if 'employment_type' in form_data and form_data['employment_type']:
+                    work_exp.employment_type = form_data['employment_type']
+                if 'start_date' in form_data and form_data['start_date']:
+                    try:
+                        from datetime import datetime
+                        work_exp.start_date = datetime.strptime(form_data['start_date'], '%Y-%m-%d').date()
+                    except ValueError:
+                        pass  # Invalid date format, skip
+                if 'end_date' in form_data and form_data['end_date']:
+                    try:
+                        from datetime import datetime
+                        work_exp.end_date = datetime.strptime(form_data['end_date'], '%Y-%m-%d').date()
+                    except ValueError:
+                        pass  # Invalid date format, skip
+                if 'currently_working' in form_data:
+                    work_exp.currently_working = bool(form_data['currently_working'])
+                if 'key_responsibilities' in form_data and form_data['key_responsibilities']:
+                    work_exp.key_responsibilities = form_data['key_responsibilities']
+                if 'key_achievements' in form_data and form_data['key_achievements']:
+                    work_exp.key_achievements = form_data['key_achievements']
+                
+                # Only save if we have essential fields
+                if hasattr(work_exp, 'job_title') and hasattr(work_exp, 'company_name'):
+                    work_exp.save()
+                    
+        elif step == '5':
+            # Education - create or update the most recent entry
+            if any(key in form_data for key in ['degree_type', 'field_of_study', 'institution_name']):
+                # Get or create the most recent education entry
+                education = profile.education_entries.first()
+                
+                if not education:
+                    education = Education(profile=profile)
+                
+                # Update fields if provided
+                if 'degree_type' in form_data and form_data['degree_type']:
+                    education.degree_type = form_data['degree_type']
+                if 'field_of_study' in form_data and form_data['field_of_study']:
+                    education.field_of_study = form_data['field_of_study']
+                if 'institution_name' in form_data and form_data['institution_name']:
+                    education.institution_name = form_data['institution_name']
+                if 'institution_location' in form_data and form_data['institution_location']:
+                    education.institution_location = form_data['institution_location']
+                if 'graduation_year' in form_data and form_data['graduation_year']:
+                    try:
+                        education.graduation_year = int(form_data['graduation_year'])
+                    except ValueError:
+                        pass  # Invalid year, skip
+                if 'gpa_grade' in form_data and form_data['gpa_grade']:
+                    education.gpa_grade = form_data['gpa_grade']
+                if 'relevant_coursework' in form_data and form_data['relevant_coursework']:
+                    education.relevant_coursework = form_data['relevant_coursework']
+                if 'academic_achievements' in form_data and form_data['academic_achievements']:
+                    education.academic_achievements = form_data['academic_achievements']
+                
+                # Only save if we have essential fields
+                if hasattr(education, 'field_of_study') and hasattr(education, 'institution_name'):
+                    education.save()
         
         profile.save()
         

@@ -649,3 +649,190 @@ class SkillsForm(forms.Form):
                 self.fields['technical_skills'].initial = ', '.join(technical_skills)
             if soft_skills:
                 self.fields['soft_skills'].initial = ', '.join(soft_skills)
+
+
+class WorkExperienceWizardForm(forms.Form):
+    """Simplified form for work experience in CV wizard"""
+    
+    job_title = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., Senior Software Engineer'
+        })
+    )
+    
+    company_name = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., Tech Solutions Ltd'
+        })
+    )
+    
+    company_location = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., Auckland, New Zealand'
+        })
+    )
+    
+    employment_type = forms.ChoiceField(
+        choices=[('', 'Select employment type')] + WorkExperience.EMPLOYMENT_TYPES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    
+    currently_working = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        })
+    )
+    
+    key_responsibilities = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': '• Responsibility 1\n• Responsibility 2\n• Responsibility 3'
+        })
+    )
+    
+    key_achievements = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': '• Achievement 1\n• Achievement 2\n• Achievement 3'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        user_profile = kwargs.pop('instance', None)
+        super().__init__(*args, **kwargs)
+        
+        if user_profile:
+            # Pre-populate with the most recent work experience
+            latest_work = user_profile.work_experiences.first()
+            if latest_work:
+                self.fields['job_title'].initial = latest_work.job_title
+                self.fields['company_name'].initial = latest_work.company_name
+                self.fields['company_location'].initial = latest_work.company_location
+                self.fields['employment_type'].initial = latest_work.employment_type
+                self.fields['start_date'].initial = latest_work.start_date
+                self.fields['end_date'].initial = latest_work.end_date
+                self.fields['currently_working'].initial = latest_work.currently_working
+                self.fields['key_responsibilities'].initial = latest_work.key_responsibilities
+                self.fields['key_achievements'].initial = latest_work.key_achievements
+
+
+class EducationWizardForm(forms.Form):
+    """Simplified form for education in CV wizard"""
+    
+    degree_type = forms.ChoiceField(
+        choices=[('', 'Select degree type')] + Education.DEGREE_TYPES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    field_of_study = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., Computer Science, Business Administration'
+        })
+    )
+    
+    institution_name = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., University of Auckland'
+        })
+    )
+    
+    institution_location = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., Auckland, New Zealand'
+        })
+    )
+    
+    graduation_year = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': 1950,
+            'max': 2030,
+            'placeholder': 'e.g., 2023'
+        })
+    )
+    
+    gpa_grade = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., 3.8 GPA, A-, Distinction'
+        })
+    )
+    
+    relevant_coursework = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'List relevant courses, projects, or specializations...'
+        })
+    )
+    
+    academic_achievements = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Dean\'s List, scholarships, academic awards...'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        user_profile = kwargs.pop('instance', None)
+        super().__init__(*args, **kwargs)
+        
+        if user_profile:
+            # Pre-populate with the most recent education
+            latest_education = user_profile.education_entries.first()
+            if latest_education:
+                self.fields['degree_type'].initial = latest_education.degree_type
+                self.fields['field_of_study'].initial = latest_education.field_of_study
+                self.fields['institution_name'].initial = latest_education.institution_name
+                self.fields['institution_location'].initial = latest_education.institution_location
+                self.fields['graduation_year'].initial = latest_education.graduation_year
+                self.fields['gpa_grade'].initial = latest_education.gpa_grade
+                self.fields['relevant_coursework'].initial = latest_education.relevant_coursework
+                self.fields['academic_achievements'].initial = latest_education.academic_achievements

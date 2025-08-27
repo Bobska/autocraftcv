@@ -20,54 +20,64 @@
             <div class="wizard-progress mb-5">
                 <div class="row text-center">
                     <div class="col step-item {% if current_step <= 1 %}active{% elif current_step > 1 %}completed{% endif %}">
-                        <div class="step-circle">
-                            {% if current_step > 1 %}
-                                <i class="fas fa-check"></i>
-                            {% else %}
-                                1
-                            {% endif %}
-                        </div>
-                        <small class="step-label">Personal Info</small>
+                        <a href="?step=1" class="step-link">
+                            <div class="step-circle">
+                                {% if current_step > 1 %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    1
+                                {% endif %}
+                            </div>
+                            <small class="step-label">Personal Info</small>
+                        </a>
                     </div>
                     <div class="col step-item {% if current_step == 2 %}active{% elif current_step > 2 %}completed{% endif %}">
-                        <div class="step-circle">
-                            {% if current_step > 2 %}
-                                <i class="fas fa-check"></i>
-                            {% else %}
-                                2
-                            {% endif %}
-                        </div>
-                        <small class="step-label">Summary</small>
+                        <a href="?step=2" class="step-link">
+                            <div class="step-circle">
+                                {% if current_step > 2 %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    2
+                                {% endif %}
+                            </div>
+                            <small class="step-label">Summary</small>
+                        </a>
                     </div>
                     <div class="col step-item {% if current_step == 3 %}active{% elif current_step > 3 %}completed{% endif %}">
-                        <div class="step-circle">
-                            {% if current_step > 3 %}
-                                <i class="fas fa-check"></i>
-                            {% else %}
-                                3
-                            {% endif %}
-                        </div>
-                        <small class="step-label">Skills</small>
+                        <a href="?step=3" class="step-link">
+                            <div class="step-circle">
+                                {% if current_step > 3 %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    3
+                                {% endif %}
+                            </div>
+                            <small class="step-label">Skills</small>
+                        </a>
                     </div>
                     <div class="col step-item {% if current_step == 4 %}active{% elif current_step > 4 %}completed{% endif %}">
-                        <div class="step-circle">
-                            {% if current_step > 4 %}
-                                <i class="fas fa-check"></i>
-                            {% else %}
-                                4
-                            {% endif %}
-                        </div>
-                        <small class="step-label">Experience</small>
+                        <a href="?step=4" class="step-link">
+                            <div class="step-circle">
+                                {% if current_step > 4 %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    4
+                                {% endif %}
+                            </div>
+                            <small class="step-label">Experience</small>
+                        </a>
                     </div>
                     <div class="col step-item {% if current_step == 5 %}active{% elif current_step > 5 %}completed{% endif %}">
-                        <div class="step-circle">
-                            {% if current_step > 5 %}
-                                <i class="fas fa-check"></i>
-                            {% else %}
-                                5
-                            {% endif %}
-                        </div>
-                        <small class="step-label">Education</small>
+                        <a href="?step=5" class="step-link">
+                            <div class="step-circle">
+                                {% if current_step > 5 %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    5
+                                {% endif %}
+                            </div>
+                            <small class="step-label">Education</small>
+                        </a>
                     </div>
                 </div>
                 <div class="progress mt-3">
@@ -257,26 +267,72 @@
                         {% elif current_step == 4 %}
                             <!-- Work Experience -->
                             <div class="row">
-                                <div class="col-12 mb-4">
-                                    {{ form.work_experience.label_tag }}
-                                    {{ form.work_experience }}
-                                    <div class="form-text">
-                                        Format: Job Title | Company | Dates<br>
-                                        • Key responsibility or achievement<br>
-                                        • Another key responsibility
+                                <div class="col-md-6 mb-3">
+                                    {{ form.job_title.label_tag }}
+                                    {{ form.job_title }}
+                                    {% if form.job_title.errors %}
+                                        <div class="text-danger small">{{ form.job_title.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.company_name.label_tag }}
+                                    {{ form.company_name }}
+                                    {% if form.company_name.errors %}
+                                        <div class="text-danger small">{{ form.company_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.company_location.label_tag }}
+                                    {{ form.company_location }}
+                                    {% if form.company_location.errors %}
+                                        <div class="text-danger small">{{ form.company_location.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.employment_type.label_tag }}
+                                    {{ form.employment_type }}
+                                    {% if form.employment_type.errors %}
+                                        <div class="text-danger small">{{ form.employment_type.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.start_date.label_tag }}
+                                    {{ form.start_date }}
+                                    {% if form.start_date.errors %}
+                                        <div class="text-danger small">{{ form.start_date.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.end_date.label_tag }}
+                                    {{ form.end_date }}
+                                    <div class="form-check mt-2">
+                                        {{ form.currently_working }}
+                                        <label class="form-check-label" for="{{ form.currently_working.id_for_label }}">
+                                            Currently working here
+                                        </label>
                                     </div>
-                                    {% if form.work_experience.errors %}
-                                        <div class="text-danger small">{{ form.work_experience.errors.0 }}</div>
+                                    {% if form.end_date.errors %}
+                                        <div class="text-danger small">{{ form.end_date.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-12 mb-3">
-                                    {{ form.achievements.label_tag }}
-                                    {{ form.achievements }}
+                                    {{ form.key_responsibilities.label_tag }}
+                                    {{ form.key_responsibilities }}
+                                    <div class="form-text">
+                                        List your main responsibilities and duties in bullet points.
+                                    </div>
+                                    {% if form.key_responsibilities.errors %}
+                                        <div class="text-danger small">{{ form.key_responsibilities.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 mb-3">
+                                    {{ form.key_achievements.label_tag }}
+                                    {{ form.key_achievements }}
                                     <div class="form-text">
                                         Highlight specific achievements, metrics, awards, or notable projects.
                                     </div>
-                                    {% if form.achievements.errors %}
-                                        <div class="text-danger small">{{ form.achievements.errors.0 }}</div>
+                                    {% if form.key_achievements.errors %}
+                                        <div class="text-danger small">{{ form.key_achievements.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -284,15 +340,69 @@
                         {% elif current_step == 5 %}
                             <!-- Education -->
                             <div class="row">
-                                <div class="col-12 mb-3">
-                                    {{ form.education.label_tag }}
-                                    {{ form.education }}
+                                <div class="col-md-6 mb-3">
+                                    {{ form.degree_type.label_tag }}
+                                    {{ form.degree_type }}
+                                    {% if form.degree_type.errors %}
+                                        <div class="text-danger small">{{ form.degree_type.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.field_of_study.label_tag }}
+                                    {{ form.field_of_study }}
+                                    {% if form.field_of_study.errors %}
+                                        <div class="text-danger small">{{ form.field_of_study.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.institution_name.label_tag }}
+                                    {{ form.institution_name }}
+                                    {% if form.institution_name.errors %}
+                                        <div class="text-danger small">{{ form.institution_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.institution_location.label_tag }}
+                                    {{ form.institution_location }}
+                                    {% if form.institution_location.errors %}
+                                        <div class="text-danger small">{{ form.institution_location.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.graduation_year.label_tag }}
+                                    {{ form.graduation_year }}
+                                    {% if form.graduation_year.errors %}
+                                        <div class="text-danger small">{{ form.graduation_year.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.gpa_grade.label_tag }}
+                                    {{ form.gpa_grade }}
                                     <div class="form-text">
-                                        Format: Degree, Institution, Year<br>
-                                        Include relevant coursework, projects, or academic achievements.
+                                        Optional: GPA, final grade, or class rank
                                     </div>
-                                    {% if form.education.errors %}
-                                        <div class="text-danger small">{{ form.education.errors.0 }}</div>
+                                    {% if form.gpa_grade.errors %}
+                                        <div class="text-danger small">{{ form.gpa_grade.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 mb-3">
+                                    {{ form.relevant_coursework.label_tag }}
+                                    {{ form.relevant_coursework }}
+                                    <div class="form-text">
+                                        List relevant courses, projects, or specializations.
+                                    </div>
+                                    {% if form.relevant_coursework.errors %}
+                                        <div class="text-danger small">{{ form.relevant_coursework.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 mb-3">
+                                    {{ form.academic_achievements.label_tag }}
+                                    {{ form.academic_achievements }}
+                                    <div class="form-text">
+                                        Dean's List, scholarships, academic awards, honors, etc.
+                                    </div>
+                                    {% if form.academic_achievements.errors %}
+                                        <div class="text-danger small">{{ form.academic_achievements.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -439,6 +549,52 @@
 }
 
 .step-item.completed .step-label {
+    color: var(--success-state);
+}
+
+/* Step Navigation Links */
+.step-link {
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.step-link:hover {
+    text-decoration: none;
+    transform: translateY(-2px);
+}
+
+.step-link:hover .step-circle {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.step-link:hover .step-label {
+    color: var(--btn-primary-bg);
+}
+
+/* Preserve active and completed states for linked steps */
+.step-item.active .step-link .step-circle,
+.step-item.active .step-link:hover .step-circle {
+    background-color: var(--btn-primary-bg);
+    border-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+}
+
+.step-item.completed .step-link .step-circle,
+.step-item.completed .step-link:hover .step-circle {
+    background-color: var(--success-state);
+    border-color: var(--success-state);
+    color: white;
+}
+
+.step-item.active .step-link .step-label,
+.step-item.active .step-link:hover .step-label {
+    color: var(--btn-primary-bg);
+}
+
+.step-item.completed .step-link .step-label,
+.step-item.completed .step-link:hover .step-label {
     color: var(--success-state);
 }
 

@@ -86,7 +86,7 @@ class CVDashboardView(TemplateView):
             ('full_name', 'Full Name'),
             ('email', 'Email'),
             ('phone', 'Phone'),
-            ('location', 'Location'),
+            ('city_region', 'City & Region'),
             ('professional_summary', 'Professional Summary'),
             ('technical_skills', 'Technical Skills'),
             ('soft_skills', 'Soft Skills'),
@@ -248,7 +248,7 @@ class CVProfileView(TemplateView):
 
 
 class CVEditView(TemplateView):
-    """Form-based editing of CV sections"""
+    """Form-based editing of comprehensive AU/NZ CV sections"""
     template_name = 'jobassistant/cv_edit.html'
     
     def get_context_data(self, **kwargs):
@@ -257,29 +257,67 @@ class CVEditView(TemplateView):
         profile_id = kwargs.get('profile_id')
         user_profile = get_object_or_404(UserProfile, id=profile_id)
         
+        # Prepare form with all comprehensive CV fields
+        form = UserProfileForm(instance=user_profile)
+        
         context.update({
             'profile': user_profile,
-            'form': UserProfileForm(instance=user_profile),
+            'form': form,
+            'visa_status_choices': UserProfile.VISA_STATUS_CHOICES,
+            'availability_choices': UserProfile.AVAILABILITY_CHOICES,
+            'references_choices': UserProfile.REFERENCES_CHOICE,
         })
         
         return context
     
     def post(self, request, *args, **kwargs):
-        """Handle CV edit form submission"""
+        """Handle comprehensive CV edit form submission"""
         profile_id = kwargs.get('profile_id')
         user_profile = get_object_or_404(UserProfile, id=profile_id)
         
-        form = UserProfileForm(request.POST, instance=user_profile)
+        # Handle file uploads if present
+        files = request.FILES
+        
+        form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
+        
         if form.is_valid():
-            form.save()
-            messages.success(request, 'CV updated successfully!')
-            return redirect('jobassistant:cv_profile', profile_id=profile_id)
+            try:
+                # Save the form
+                updated_profile = form.save()
+                
+                # Add success message with details
+                messages.success(
+                    request, 
+                    'Your professional CV has been updated successfully! All sections including personal details, '
+                    'professional summary, skills, experience, education, and additional information have been saved.'
+                )
+                
+                # Redirect to CV profile view
+                return redirect('jobassistant:cv_profile', profile_id=profile_id)
+                
+            except Exception as e:
+                logger.error(f"Error saving CV data for profile {profile_id}: {e}")
+                messages.error(
+                    request, 
+                    'An error occurred while saving your CV. Please try again or contact support if the problem persists.'
+                )
         else:
-            messages.error(request, 'Please correct the errors below.')
-            return render(request, self.template_name, {
-                'profile': user_profile,
-                'form': form,
-            })
+            # Form validation failed
+            error_count = sum(len(errors) for errors in form.errors.values())
+            messages.error(
+                request, 
+                f'Please correct {error_count} error(s) in your CV before saving. '
+                'Check the highlighted fields below for specific requirements.'
+            )
+        
+        # Render form with errors
+        return render(request, self.template_name, {
+            'profile': user_profile,
+            'form': form,
+            'visa_status_choices': UserProfile.VISA_STATUS_CHOICES,
+            'availability_choices': UserProfile.AVAILABILITY_CHOICES,
+            'references_choices': UserProfile.REFERENCES_CHOICE,
+        })
 
 
 # AJAX Endpoints for CV Wizard
@@ -310,13 +348,18 @@ def save_wizard_step(request):
         
         # Update profile based on step
         if step == 1:
-            # Personal Information
+            # Personal Information (AU/NZ CV Standards)
             profile.full_name = form_data.get('full_name', profile.full_name)
             profile.email = form_data.get('email', profile.email)
             profile.phone = form_data.get('phone', profile.phone)
-            profile.location = form_data.get('location', profile.location)
+            profile.city_region = form_data.get('city_region', profile.city_region)
             profile.linkedin_url = form_data.get('linkedin_url', profile.linkedin_url)
             profile.portfolio_url = form_data.get('portfolio_url', profile.portfolio_url)
+            
+            # AU/NZ Specific Fields
+            profile.visa_work_rights = form_data.get('visa_work_rights', profile.visa_work_rights)
+            profile.availability = form_data.get('availability', profile.availability)
+            profile.drivers_license = form_data.get('drivers_license', profile.drivers_license) == 'true'
         
         elif step == 2:
             # Professional Summary
@@ -324,19 +367,38 @@ def save_wizard_step(request):
             profile.experience_level = form_data.get('experience_level', profile.experience_level)
         
         elif step == 3:
-            # Skills
+            # Skills (Technical & Soft Skills)
             profile.technical_skills = form_data.get('technical_skills', profile.technical_skills)
             profile.soft_skills = form_data.get('soft_skills', profile.soft_skills)
-            profile.certifications = form_data.get('certifications', profile.certifications)
+            profile.languages = form_data.get('languages', profile.languages)
         
         elif step == 4:
             # Work Experience
             profile.work_experience = form_data.get('work_experience', profile.work_experience)
-            profile.achievements = form_data.get('achievements', profile.achievements)
         
         elif step == 5:
             # Education
             profile.education = form_data.get('education', profile.education)
+        
+        elif step == 6:
+            # Certifications & Professional Development
+            profile.certifications = form_data.get('certifications', profile.certifications)
+            profile.professional_memberships = form_data.get('professional_memberships', profile.professional_memberships)
+        
+        elif step == 7:
+            # Projects & Achievements
+            profile.projects = form_data.get('projects', profile.projects)
+            profile.achievements = form_data.get('achievements', profile.achievements)
+        
+        elif step == 8:
+            # Volunteer Work & Additional Information
+            profile.volunteer_work = form_data.get('volunteer_work', profile.volunteer_work)
+        
+        elif step == 9:
+            # References
+            profile.references_choice = form_data.get('references_choice', profile.references_choice)
+            if profile.references_choice == 'provided':
+                profile.references = form_data.get('references', profile.references)
         
         profile.save()
         
@@ -457,7 +519,7 @@ def _parse_cv_background(task_id, file_content, file_name, session_key, user_id=
                     'full_name': parsed_data.get('full_name', ''),
                     'email': parsed_data.get('email', ''),
                     'phone': parsed_data.get('phone', ''),
-                    'location': parsed_data.get('location', ''),
+                    'city_region': parsed_data.get('location', ''),
                     'linkedin_url': parsed_data.get('linkedin_url', ''),
                     'portfolio_url': parsed_data.get('portfolio_url', ''),
                     'professional_summary': parsed_data.get('professional_summary', ''),
@@ -476,7 +538,7 @@ def _parse_cv_background(task_id, file_content, file_name, session_key, user_id=
                     'full_name': parsed_data.get('full_name', ''),
                     'email': parsed_data.get('email', ''),
                     'phone': parsed_data.get('phone', ''),
-                    'location': parsed_data.get('location', ''),
+                    'city_region': parsed_data.get('location', ''),
                     'linkedin_url': parsed_data.get('linkedin_url', ''),
                     'portfolio_url': parsed_data.get('portfolio_url', ''),
                     'professional_summary': parsed_data.get('professional_summary', ''),
@@ -499,7 +561,7 @@ def _parse_cv_background(task_id, file_content, file_name, session_key, user_id=
                     'full_name': parsed_data.get('full_name', ''),
                     'email': parsed_data.get('email', ''),
                     'phone': parsed_data.get('phone', ''),
-                    'location': parsed_data.get('location', ''),
+                    'city_region': parsed_data.get('location', ''),
                     'linkedin_url': parsed_data.get('linkedin_url', ''),
                     'portfolio_url': parsed_data.get('portfolio_url', ''),
                     'professional_summary': parsed_data.get('professional_summary', ''),
@@ -534,12 +596,12 @@ class PersonalInfoForm(forms.ModelForm):
     """Form for personal information step"""
     class Meta:
         model = UserProfile
-        fields = ['full_name', 'email', 'phone', 'location', 'linkedin_url', 'portfolio_url']
+        fields = ['full_name', 'email', 'phone', 'city_region', 'linkedin_url', 'portfolio_url']
         widgets = {
             'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'John Doe'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'john.doe@email.com'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+1 (555) 123-4567'}),
-            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'San Francisco, CA'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+61 400 123 456'}),
+            'city_region': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Sydney, NSW'}),
             'linkedin_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://linkedin.com/in/johndoe'}),
             'portfolio_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://johndoe.com'}),
         }

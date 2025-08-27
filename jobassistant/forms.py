@@ -83,10 +83,13 @@ class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
         fields = [
-            'full_name', 'email', 'phone', 'location',
-            'linkedin_url', 'portfolio_url', 'professional_summary',
-            'experience_level', 'technical_skills', 'soft_skills',
-            'certifications', 'education', 'work_experience', 'achievements'
+            'full_name', 'email', 'phone', 'city_region', 'job_title',
+            'linkedin_url', 'portfolio_url', 'github_url', 'photo',
+            'professional_summary', 'technical_skills', 'soft_skills',
+            'work_experience', 'education', 'certifications', 'projects',
+            'achievements', 'volunteer_work', 'professional_memberships',
+            'references_choice', 'references', 'visa_work_rights',
+            'availability', 'drivers_license', 'languages'
         ]
         
         widgets = {
@@ -100,11 +103,15 @@ class UserProfileForm(forms.ModelForm):
             }),
             'phone': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '+1 (555) 123-4567'
+                'placeholder': '+61 400 123 456'
             }),
-            'location': forms.TextInput(attrs={
+            'city_region': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'San Francisco, CA'
+                'placeholder': 'Sydney, NSW'
+            }),
+            'job_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Senior Software Engineer'
             }),
             'linkedin_url': forms.URLInput(attrs={
                 'class': 'form-control',
@@ -114,13 +121,18 @@ class UserProfileForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'https://johndoe.com'
             }),
+            'github_url': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://github.com/johndoe'
+            }),
+            'photo': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
             'professional_summary': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 4,
                 'placeholder': 'Brief summary of your professional background and key achievements...'
-            }),
-            'experience_level': forms.Select(attrs={
-                'class': 'form-select'
             }),
             'technical_skills': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -132,33 +144,78 @@ class UserProfileForm(forms.ModelForm):
                 'rows': 2,
                 'placeholder': 'Leadership, Communication, Problem-solving, Team collaboration (comma-separated)'
             }),
-            'certifications': forms.Textarea(attrs={
+            'work_experience': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'List your relevant certifications, licenses, and credentials...'
+                'rows': 6,
+                'placeholder': 'Job Title | Company | Location | Dates\n• Key responsibility or achievement\n• Another key responsibility...'
             }),
             'education': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Degree, Institution, Year\nMajor achievements or relevant coursework...'
+                'placeholder': 'Degree | Institution | Dates\nKey achievements, honors, or relevant coursework...'
             }),
-            'work_experience': forms.Textarea(attrs={
+            'certifications': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 6,
-                'placeholder': 'Job Title | Company | Dates\n• Key responsibility or achievement\n• Another key responsibility...'
+                'rows': 3,
+                'placeholder': 'Certification Name | Issuing Body | Date Earned/Expiry'
+            }),
+            'projects': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Project Name | Role | Description | Technologies Used | Link (if applicable)'
             }),
             'achievements': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 4,
-                'placeholder': 'Notable achievements, awards, projects, or quantifiable results...'
+                'placeholder': 'Achievement Title | Organization/Context | Date | Description'
+            }),
+            'volunteer_work': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Role | Organization | Dates | Contribution'
+            }),
+            'professional_memberships': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Organization Name | Membership Level | Year Joined'
+            }),
+            'references_choice': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'references': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Name | Role/Position | Company | Phone | Email'
+            }),
+            'visa_work_rights': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'availability': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'drivers_license': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'languages': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'English (Native), Spanish (Fluent), French (Intermediate)'
             }),
         }
         
         help_texts = {
-            'technical_skills': 'Enter skills separated by commas (e.g., Python, JavaScript, AWS)',
-            'soft_skills': 'Enter soft skills separated by commas (e.g., Leadership, Communication)',
-            'work_experience': 'List your work experience with key responsibilities and achievements',
-            'achievements': 'Highlight specific achievements, metrics, and notable projects',
+            'full_name': 'Enter your full name as it should appear on your CV',
+            'city_region': 'City and region only (e.g., "Sydney, NSW" or "Auckland, North Island")',
+            'job_title': 'Optional: Your current or desired job title/profession',
+            'professional_summary': 'Required: 2-4 sentences highlighting your key strengths and career goals',
+            'technical_skills': 'Required: At least 5 technical skills, comma-separated',
+            'soft_skills': 'Required: At least 5 soft skills, comma-separated',
+            'work_experience': 'Required: At least one work experience entry',
+            'education': 'Required: At least your highest qualification',
+            'references_choice': 'Choose whether to provide references or state "Available on request"',
+            'references': 'If providing references, include at least 2 contacts',
+            'visa_work_rights': 'Your current visa/work status in Australia or New Zealand',
+            'drivers_license': 'Check if you have a valid driver\'s license',
         }
     
     def clean_email(self):

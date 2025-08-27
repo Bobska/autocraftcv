@@ -49,33 +49,88 @@ class UserProfile(models.Model):
         ('executive', 'Executive/C-Level'),
     ]
     
+    VISA_STATUS_CHOICES = [
+        ('nz_citizen', 'New Zealand Citizen'),
+        ('au_citizen', 'Australian Citizen'),
+        ('au_pr', 'Australian Permanent Resident'),
+        ('nz_resident', 'New Zealand Resident'),
+        ('open_work_visa', 'Open Work Visa'),
+        ('employer_sponsored', 'Employer Sponsored Visa'),
+        ('student_visa', 'Student Visa'),
+        ('working_holiday', 'Working Holiday Visa'),
+        ('other', 'Other (specify in notes)'),
+    ]
+    
+    AVAILABILITY_CHOICES = [
+        ('immediate', 'Immediate'),
+        ('1_week', '1 Week'),
+        ('2_weeks', '2 Weeks'),
+        ('1_month', '1 Month'),
+        ('negotiable', 'Negotiable'),
+    ]
+    
+    REFERENCES_CHOICE = [
+        ('provided', 'References Provided'),
+        ('on_request', 'Available on Request'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     session_key = models.CharField(max_length=40, blank=True)  # For anonymous users
     
-    # Personal Information
-    full_name = models.CharField(max_length=200)
-    email = models.EmailField()
-    phone = models.CharField(max_length=20, blank=True)
-    location = models.CharField(max_length=200, blank=True)
-    linkedin_url = models.URLField(blank=True)
-    portfolio_url = models.URLField(blank=True)
+    # 1. Personal Details (Required and Optional)
+    full_name = models.CharField(max_length=200)  # Required
+    email = models.EmailField()  # Required
+    phone = models.CharField(max_length=20)  # Required
+    city_region = models.CharField(max_length=100, blank=True)  # Required (City & Region)
+    job_title = models.CharField(max_length=150, blank=True)  # Optional (Job Title/Profession)
+    linkedin_url = models.URLField(blank=True)  # Optional
+    portfolio_url = models.URLField(blank=True)  # Optional
+    github_url = models.URLField(blank=True)  # Optional
+    photo = models.ImageField(upload_to='cv_photos/', blank=True, null=True)  # Optional (not recommended)
     
-    # Professional Summary
-    professional_summary = models.TextField(blank=True)
+    # 2. Professional Summary / Career Objective (Required)
+    professional_summary = models.TextField(help_text="2-4 sentences highlighting your key strengths and career goals")  # Required
+    
+    # 3. Key Skills (Required: at least 5 skills)
+    technical_skills = models.TextField(blank=True, help_text="Technical skills separated by commas")
+    soft_skills = models.TextField(blank=True, help_text="Soft skills separated by commas")
+    
+    # Legacy field for backward compatibility
     experience_level = models.CharField(max_length=20, choices=EXPERIENCE_LEVELS, default='mid')
     
-    # Skills
-    technical_skills = models.TextField(blank=True, help_text="Comma-separated list of technical skills")
-    soft_skills = models.TextField(blank=True, help_text="Comma-separated list of soft skills")
-    certifications = models.TextField(blank=True)
+    # 4. Work Experience (Required: at least 1 entry) - stored as JSON for structured data
+    work_experience = models.TextField(blank=True, help_text="JSON formatted work experience entries")
     
-    # Education
-    education = models.TextField(blank=True)
+    # 5. Education (Required: at least highest qualification) - stored as JSON
+    education = models.TextField(blank=True, help_text="JSON formatted education entries")
     
-    # Experience (stored as structured text)
-    work_experience = models.TextField(blank=True)
-    achievements = models.TextField(blank=True)
+    # 6. Certifications / Licences (Optional) - stored as JSON
+    certifications = models.TextField(blank=True, help_text="JSON formatted certifications")
+    
+    # 7. Projects / Portfolio (Optional) - stored as JSON
+    projects = models.TextField(blank=True, help_text="JSON formatted project entries")
+    
+    # 8. Achievements / Awards (Optional) - stored as JSON
+    achievements = models.TextField(blank=True, help_text="JSON formatted achievements")
+    
+    # 9. Volunteer / Community Work (Optional) - stored as JSON
+    volunteer_work = models.TextField(blank=True, help_text="JSON formatted volunteer work")
+    
+    # 10. Professional Memberships (Optional) - stored as JSON
+    professional_memberships = models.TextField(blank=True, help_text="JSON formatted memberships")
+    
+    # 11. References (Required choice)
+    references_choice = models.CharField(max_length=20, choices=REFERENCES_CHOICE, default='on_request')
+    references = models.TextField(blank=True, help_text="JSON formatted referee details")
+    
+    # 12. Extras (NZ/AU-specific, Optional)
+    visa_work_rights = models.CharField(max_length=30, choices=VISA_STATUS_CHOICES, blank=True)
+    availability = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, blank=True)
+    drivers_license = models.BooleanField(default=False)
+    
+    # Additional fields
+    languages = models.TextField(blank=True, help_text="Languages and proficiency levels")
     
     # File uploads
     resume_file = models.FileField(upload_to='resumes/', blank=True, null=True)

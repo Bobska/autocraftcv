@@ -216,6 +216,10 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('CV Upload page loaded');
+    console.log('Progress tracker available:', typeof window.progressTracker !== 'undefined');
+    console.log('Progress tracker track method:', typeof window.progressTracker?.track);
+    
     const uploadForm = document.getElementById('cv-upload-form');
     const fileInput = document.getElementById('cv-file-input');
     const uploadBtn = document.getElementById('upload-btn');
@@ -405,37 +409,65 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.success) {
-                // Check if progress tracker is available
-                if (typeof window.progressTracker !== 'undefined') {
-                    // Start progress tracking
-                    window.progressTracker.track(data.task_id, {
-                        progressContainer: progressContainer.querySelector('.progress-tracker'),
-                        endpoint: '/api/progress/' + data.task_id + '/',
-                        onSuccess: function(progressData) {
-                            showNotification('CV uploaded and processed successfully!', 'success');
-                            
-                            // Redirect to profile view or dashboard
-                            setTimeout(() => {
-                                if (progressData.profile_url) {
-                                    window.location.href = progressData.profile_url;
-                                } else if (progressData.profile_id) {
-                                    window.location.href = '/cv/profile/' + progressData.profile_id + '/';
-                                } else {
-                                    window.location.href = '{% url "jobassistant:cv_dashboard" %}';
+                // Ensure progress tracker is available
+                let retryCount = 0;
+                const maxRetries = 10; // Max 1 second wait (10 * 100ms)
+                
+                function initProgressTracking() {
+                    if (typeof window.progressTracker !== 'undefined' && window.progressTracker.track) {
+                        // Start progress tracking
+                        try {
+                            window.progressTracker.track(data.task_id, {
+                                progressContainer: progressContainer.querySelector('.progress-tracker'),
+                                endpoint: '/api/progress/' + data.task_id + '/',
+                                onSuccess: function(progressData) {
+                                    showNotification('CV uploaded and processed successfully!', 'success');
+                                    
+                                    // Redirect to profile view or dashboard
+                                    setTimeout(() => {
+                                        if (progressData.profile_url) {
+                                            window.location.href = progressData.profile_url;
+                                        } else if (progressData.profile_id) {
+                                            window.location.href = '/cv/profile/' + progressData.profile_id + '/';
+                                        } else {
+                                            window.location.href = '{% url "jobassistant:cv_dashboard" %}';
+                                        }
+                                    }, 1500);
+                                },
+                                onError: function(error) {
+                                    showNotification('Upload failed: ' + (error.error || 'Processing error'), 'error');
+                                    resetForm();
                                 }
-                            }, 1500);
-                        },
-                        onError: function(error) {
-                            showNotification('Upload failed: ' + (error.error || 'Processing error'), 'error');
-                            resetForm();
+                            });
+                        } catch (error) {
+                            console.error('Progress tracker error:', error);
+                            // Fallback if progress tracker fails
+                            showNotification('CV uploaded successfully! Processing in background...', 'success');
+                            setTimeout(() => {
+                                window.location.href = '{% url "jobassistant:cv_dashboard" %}';
+                            }, 2000);
                         }
-                    });
+                    } else if (retryCount < maxRetries) {
+                        // Try again after a short delay if progress tracker is not ready
+                        retryCount++;
+                        setTimeout(initProgressTracking, 100);
+                    } else {
+                        // If progress tracker is still not available after retries, use fallback
+                        console.warn('Progress tracker not available after retries, using fallback');
+                        showNotification('CV uploaded successfully! Processing in background...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '{% url "jobassistant:cv_dashboard" %}';
+                        }, 2000);
+                    }
+                }
+                
+                // Check if progress tracker is available immediately or wait for it
+                if (typeof window.progressTracker !== 'undefined' && window.progressTracker.track) {
+                    initProgressTracking();
                 } else {
-                    // Fallback if progress tracker is not available
-                    showNotification('CV uploaded successfully! Processing in background...', 'success');
-                    setTimeout(() => {
-                        window.location.href = '{% url "jobassistant:cv_dashboard" %}';
-                    }, 2000);
+                    // Show loading message and wait for progress tracker to load
+                    showNotification('CV uploaded successfully! Initializing progress tracking...', 'info');
+                    setTimeout(initProgressTracking, 100);
                 }
             } else {
                 throw new Error(data.error || 'Upload failed');

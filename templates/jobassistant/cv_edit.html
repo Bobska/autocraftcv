@@ -1,655 +1,820 @@
 {% extends 'jobassistant/base.html' %}
+{% load static %}
 
-{% block title %}Edit CV - {{ profile.full_name }}{% endblock %}
+{% block title %}Edit Professional CV - Australian/New Zealand Standards{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #4f46e5;
+    }
+    
+    .section-content {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .required-field {
+        border-left: 3px solid #dc2626;
+    }
+    
+    .optional-field {
+        border-left: 3px solid #059669;
+    }
+    
+    .field-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .required-indicator {
+        color: #dc2626;
+        font-weight: bold;
+    }
+    
+    .optional-indicator {
+        color: #059669;
+        font-size: 0.875rem;
+        font-style: italic;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+    }
+    
+    .btn-secondary {
+        background: #6b7280;
+        border: none;
+        padding: 0.75rem 1.5rem;
+    }
+    
+    .progress-bar {
+        background: linear-gradient(90deg, #4f46e5, #7c3aed);
+    }
+    
+    .auto-save-indicator {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #059669;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 1000;
+    }
+    
+    .auto-save-indicator.show {
+        opacity: 1;
+    }
+    
+    .character-count {
+        font-size: 0.75rem;
+        color: #6b7280;
+        text-align: right;
+        margin-top: 0.25rem;
+    }
+    
+    .au-nz-highlight {
+        background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+        border: 1px solid #f59e0b;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+    }
+    
+    .au-nz-highlight .badge {
+        background: #f59e0b;
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
+<div class="container-fluid py-4">
+    <!-- Auto-save indicator -->
+    <div id="autoSaveIndicator" class="auto-save-indicator">
+        <i class="bi bi-check-circle-fill"></i> Changes saved automatically
+    </div>
+    
+    <!-- Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h3 class="mb-1">Edit Professional CV</h3>
-                    <p class="text-muted mb-0">Update your professional information</p>
+                    <h1 class="h2 mb-1">Edit Professional CV</h1>
+                    <p class="text-muted mb-0">Australian & New Zealand Employment Standards</p>
                 </div>
-                <div class="btn-group">
-                    <a href="{% url 'jobassistant:cv_profile' profile_id=profile.id %}" 
-                       class="btn btn-outline-secondary">
-                        <i class="fas fa-eye"></i> Preview
+                <div class="text-end">
+                    <a href="{% url 'jobassistant:cv_profile' profile.id %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-arrow-left"></i> Back to Profile
                     </a>
-                    <a href="{% url 'jobassistant:cv_dashboard' %}" 
-                       class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Dashboard
-                    </a>
+                    <button type="submit" form="cvEditForm" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save CV
+                    </button>
                 </div>
-            </div>
-
-            <!-- Progress Indicator -->
-            <div class="edit-progress-container mb-4">
-                <div class="row text-center">
-                    <div class="col-6 col-md-3">
-                        <div class="edit-progress-item active" data-section="personal">
-                            <div class="edit-progress-icon">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <span>Personal</span>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="edit-progress-item" data-section="professional">
-                            <div class="edit-progress-icon">
-                                <i class="fas fa-briefcase"></i>
-                            </div>
-                            <span>Professional</span>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="edit-progress-item" data-section="experience">
-                            <div class="edit-progress-icon">
-                                <i class="fas fa-history"></i>
-                            </div>
-                            <span>Experience</span>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="edit-progress-item" data-section="skills">
-                            <div class="edit-progress-icon">
-                                <i class="fas fa-cog"></i>
-                            </div>
-                            <span>Skills</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Edit Form -->
-            <div class="edit-form-container">
-                <form id="cv-edit-form" method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    
-                    <!-- Personal Information Section -->
-                    <div class="edit-section active" id="personal-section">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-user text-primary me-2"></i>
-                                    Personal Information
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="id_first_name" class="form-label">First Name</label>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="id_first_name" 
-                                                   name="first_name" 
-                                                   value="{{ profile.first_name|default:'' }}"
-                                                   required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="id_last_name" class="form-label">Last Name</label>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="id_last_name" 
-                                                   name="last_name" 
-                                                   value="{{ profile.last_name|default:'' }}"
-                                                   required>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="id_email" class="form-label">Email Address</label>
-                                            <input type="email" 
-                                                   class="form-control" 
-                                                   id="id_email" 
-                                                   name="email" 
-                                                   value="{{ profile.email|default:'' }}"
-                                                   required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="id_phone" class="form-label">Phone Number</label>
-                                            <input type="tel" 
-                                                   class="form-control" 
-                                                   id="id_phone" 
-                                                   name="phone" 
-                                                   value="{{ profile.phone|default:'' }}">
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="id_location" class="form-label">Location</label>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="id_location" 
-                                                   name="location" 
-                                                   value="{{ profile.location|default:'' }}"
-                                                   placeholder="City, State/Country">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="id_linkedin_url" class="form-label">LinkedIn URL</label>
-                                            <input type="url" 
-                                                   class="form-control" 
-                                                   id="id_linkedin_url" 
-                                                   name="linkedin_url" 
-                                                   value="{{ profile.linkedin_url|default:'' }}"
-                                                   placeholder="https://linkedin.com/in/your-profile">
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="id_portfolio_url" class="form-label">Portfolio/Website URL</label>
-                                    <input type="url" 
-                                           class="form-control" 
-                                           id="id_portfolio_url" 
-                                           name="portfolio_url" 
-                                           value="{{ profile.portfolio_url|default:'' }}"
-                                           placeholder="https://your-portfolio.com">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Professional Information Section -->
-                    <div class="edit-section" id="professional-section">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-briefcase text-primary me-2"></i>
-                                    Professional Summary
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="id_professional_summary" class="form-label">Professional Summary</label>
-                                    <textarea class="form-control" 
-                                              id="id_professional_summary" 
-                                              name="professional_summary" 
-                                              rows="5"
-                                              placeholder="Write a compelling summary of your professional background, key skills, and career objectives...">{{ profile.professional_summary|default:'' }}</textarea>
-                                    <div class="form-text">2-3 sentences highlighting your key strengths and career goals.</div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="id_experience_level" class="form-label">Experience Level</label>
-                                            <select class="form-select" id="id_experience_level" name="experience_level">
-                                                <option value="">Select Experience Level</option>
-                                                <option value="entry" {% if profile.experience_level == 'entry' %}selected{% endif %}>Entry Level (0-2 years)</option>
-                                                <option value="mid" {% if profile.experience_level == 'mid' %}selected{% endif %}>Mid Level (3-5 years)</option>
-                                                <option value="senior" {% if profile.experience_level == 'senior' %}selected{% endif %}>Senior Level (6-10 years)</option>
-                                                <option value="lead" {% if profile.experience_level == 'lead' %}selected{% endif %}>Lead/Principal (10+ years)</option>
-                                                <option value="executive" {% if profile.experience_level == 'executive' %}selected{% endif %}>Executive/C-Level</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="id_desired_position" class="form-label">Desired Position</label>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="id_desired_position" 
-                                                   name="desired_position" 
-                                                   value="{{ profile.desired_position|default:'' }}"
-                                                   placeholder="e.g., Senior Software Engineer">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Experience Section -->
-                    <div class="edit-section" id="experience-section">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-history text-primary me-2"></i>
-                                    Work Experience & Education
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-4">
-                                    <label for="id_work_experience" class="form-label">Work Experience</label>
-                                    <textarea class="form-control" 
-                                              id="id_work_experience" 
-                                              name="work_experience" 
-                                              rows="8"
-                                              placeholder="Enter your work experience, one job per line in format: 'Job Title at Company Name (Start Date - End Date): Key responsibilities and achievements'">{{ profile.work_experience|default:'' }}</textarea>
-                                    <div class="form-text">Enter each position on a new line. Include job title, company, dates, and key achievements.</div>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label for="id_education" class="form-label">Education</label>
-                                    <textarea class="form-control" 
-                                              id="id_education" 
-                                              name="education" 
-                                              rows="4"
-                                              placeholder="Enter your education background, one degree per line in format: 'Degree in Field from Institution (Year)'">{{ profile.education|default:'' }}</textarea>
-                                    <div class="form-text">Include degree type, field of study, institution, and graduation year.</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="id_certifications" class="form-label">Certifications</label>
-                                    <textarea class="form-control" 
-                                              id="id_certifications" 
-                                              name="certifications" 
-                                              rows="3"
-                                              placeholder="List your professional certifications, licenses, or credentials...">{{ profile.certifications|default:'' }}</textarea>
-                                    <div class="form-text">Include certification name, issuing organization, and expiration date if applicable.</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="id_achievements" class="form-label">Key Achievements</label>
-                                    <textarea class="form-control" 
-                                              id="id_achievements" 
-                                              name="achievements" 
-                                              rows="4"
-                                              placeholder="Highlight your most significant professional achievements, awards, or recognition...">{{ profile.achievements|default:'' }}</textarea>
-                                    <div class="form-text">Focus on quantifiable achievements and career highlights.</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Skills Section -->
-                    <div class="edit-section" id="skills-section">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-cog text-primary me-2"></i>
-                                    Skills & Competencies
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-4">
-                                    <label for="id_technical_skills" class="form-label">Technical Skills</label>
-                                    <textarea class="form-control" 
-                                              id="id_technical_skills" 
-                                              name="technical_skills" 
-                                              rows="4"
-                                              placeholder="List your technical skills separated by commas (e.g., Python, JavaScript, AWS, Docker, SQL...)">{{ profile.technical_skills|default:'' }}</textarea>
-                                    <div class="form-text">Include programming languages, frameworks, tools, and technologies.</div>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label for="id_soft_skills" class="form-label">Soft Skills</label>
-                                    <textarea class="form-control" 
-                                              id="id_soft_skills" 
-                                              name="soft_skills" 
-                                              rows="3"
-                                              placeholder="List your soft skills separated by commas (e.g., Leadership, Communication, Problem Solving...)">{{ profile.soft_skills|default:'' }}</textarea>
-                                    <div class="form-text">Include interpersonal skills, leadership abilities, and personal qualities.</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="id_languages" class="form-label">Languages</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="id_languages" 
-                                           name="languages" 
-                                           value="{{ profile.languages|default:'' }}"
-                                           placeholder="e.g., English (Native), Spanish (Fluent), French (Intermediate)">
-                                    <div class="form-text">Include proficiency level for each language.</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="edit-actions-container mt-4">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-outline-secondary" id="prev-section-btn" disabled>
-                                        <i class="fas fa-arrow-left"></i> Previous
-                                    </button>
-                                    <button type="button" class="btn btn-primary" id="next-section-btn">
-                                        Next <i class="fas fa-arrow-right"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="d-flex gap-2 justify-content-md-end">
-                                    <button type="button" class="btn btn-outline-primary" id="auto-save-btn">
-                                        <i class="fas fa-save"></i> Save Draft
-                                    </button>
-                                    <button type="submit" class="btn btn-success">
-                                        <i class="fas fa-check"></i> Save CV
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
+    
+    <!-- Progress Bar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar" id="completionProgress" role="progressbar" style="width: 0%"></div>
+            </div>
+            <small class="text-muted mt-1">CV Completion: <span id="completionPercentage">0%</span></small>
+        </div>
+    </div>
+    
+    <form id="cvEditForm" method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        
+        <!-- Form Errors Display -->
+        {% if form.errors %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h6><i class="bi bi-exclamation-triangle-fill"></i> Please correct the following errors:</h6>
+            <ul class="mb-0">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li>{{ field|capfirst }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                
+                <!-- Section 1: Personal Details -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-person-circle"></i> 1. Personal Details</h3>
+                    <small>Essential contact information for employers</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="row">
+                        <!-- Full Name (Required) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label required-field px-3 py-2 rounded">
+                                Full Name <span class="required-indicator">*</span>
+                            </label>
+                            {{ form.full_name }}
+                            {% if form.full_name.help_text %}
+                                <div class="help-text">{{ form.full_name.help_text }}</div>
+                            {% endif %}
+                            {% if form.full_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Job Title (Optional) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Job Title/Profession <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.job_title }}
+                            <div class="help-text">Your current or desired job title</div>
+                        </div>
+                        
+                        <!-- Email (Required) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label required-field px-3 py-2 rounded">
+                                Email Address <span class="required-indicator">*</span>
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Phone (Required) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label required-field px-3 py-2 rounded">
+                                Phone Number <span class="required-indicator">*</span>
+                            </label>
+                            {{ form.phone }}
+                            <div class="help-text">Include area code (e.g., +61 4XX XXX XXX)</div>
+                            {% if form.phone.errors %}
+                                <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- City & Region (Required) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label required-field px-3 py-2 rounded">
+                                City & Region <span class="required-indicator">*</span>
+                            </label>
+                            {{ form.city_region }}
+                            <div class="help-text">e.g., Sydney, NSW or Auckland, NZ</div>
+                            {% if form.city_region.errors %}
+                                <div class="text-danger small mt-1">{{ form.city_region.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- LinkedIn URL (Optional) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                LinkedIn Profile <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.linkedin_url }}
+                            <div class="help-text">Your LinkedIn profile URL</div>
+                        </div>
+                        
+                        <!-- Portfolio URL (Optional) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Portfolio/Website <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.portfolio_url }}
+                            <div class="help-text">Link to your professional portfolio</div>
+                        </div>
+                        
+                        <!-- GitHub URL (Optional) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                GitHub Profile <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.github_url }}
+                            <div class="help-text">For technical roles</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 2: Professional Summary -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-clipboard-data"></i> 2. Professional Summary</h3>
+                    <small>Compelling overview of your professional value</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="mb-3">
+                        <label class="field-label required-field px-3 py-2 rounded">
+                            Professional Summary <span class="required-indicator">*</span>
+                        </label>
+                        {{ form.professional_summary }}
+                        <div class="help-text">
+                            2-4 sentences highlighting your key strengths, experience, and career goals. 
+                            This is the first thing employers read - make it compelling!
+                        </div>
+                        <div class="character-count">
+                            <span id="summaryCount">0</span>/300 characters recommended
+                        </div>
+                        {% if form.professional_summary.errors %}
+                            <div class="text-danger small mt-1">{{ form.professional_summary.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Section 3: Key Skills -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-gear-wide-connected"></i> 3. Key Skills</h3>
+                    <small>Technical and soft skills that match job requirements</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="row">
+                        <!-- Technical Skills (Required) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label required-field px-3 py-2 rounded">
+                                Technical Skills <span class="required-indicator">*</span>
+                            </label>
+                            {{ form.technical_skills }}
+                            <div class="help-text">
+                                List 5+ technical skills (software, programming languages, tools). 
+                                Separate with commas.
+                            </div>
+                            {% if form.technical_skills.errors %}
+                                <div class="text-danger small mt-1">{{ form.technical_skills.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Soft Skills (Required) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label required-field px-3 py-2 rounded">
+                                Soft Skills <span class="required-indicator">*</span>
+                            </label>
+                            {{ form.soft_skills }}
+                            <div class="help-text">
+                                List 5+ soft skills (communication, leadership, problem-solving). 
+                                Separate with commas.
+                            </div>
+                            {% if form.soft_skills.errors %}
+                                <div class="text-danger small mt-1">{{ form.soft_skills.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Languages (Optional) -->
+                        <div class="col-12 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Languages <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.languages }}
+                            <div class="help-text">
+                                List languages and proficiency levels (e.g., English - Native, Mandarin - Conversational)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 4: Work Experience -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-briefcase"></i> 4. Work Experience</h3>
+                    <small>Professional employment history with achievements</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="mb-3">
+                        <label class="field-label required-field px-3 py-2 rounded">
+                            Work Experience <span class="required-indicator">*</span>
+                        </label>
+                        {{ form.work_experience }}
+                        <div class="help-text">
+                            List positions in reverse chronological order. Include: Job Title, Company, Dates, 
+                            and 3-5 bullet points of key achievements and responsibilities. Use action verbs 
+                            and quantify results where possible.
+                        </div>
+                        <div class="character-count">
+                            <span id="experienceCount">0</span> characters
+                        </div>
+                        {% if form.work_experience.errors %}
+                            <div class="text-danger small mt-1">{{ form.work_experience.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Section 5: Education -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-mortarboard"></i> 5. Education</h3>
+                    <small>Academic qualifications and training</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="mb-3">
+                        <label class="field-label required-field px-3 py-2 rounded">
+                            Education <span class="required-indicator">*</span>
+                        </label>
+                        {{ form.education }}
+                        <div class="help-text">
+                            List your highest qualification first. Include: Degree/Certificate, Institution, 
+                            Year completed, and any relevant coursework or achievements (GPA if 3.5+).
+                        </div>
+                        {% if form.education.errors %}
+                            <div class="text-danger small mt-1">{{ form.education.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Section 6: Certifications & Professional Development -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-award"></i> 6. Certifications & Professional Development</h3>
+                    <small>Professional certifications and ongoing learning</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="row">
+                        <!-- Certifications (Optional) -->
+                        <div class="col-12 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Certifications <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.certifications }}
+                            <div class="help-text">
+                                List relevant professional certifications, licenses, or training programs. 
+                                Include issuing body and expiration dates if applicable.
+                            </div>
+                        </div>
+                        
+                        <!-- Professional Memberships (Optional) -->
+                        <div class="col-12 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Professional Memberships <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.professional_memberships }}
+                            <div class="help-text">
+                                List memberships in professional associations or industry bodies
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 7: Projects & Achievements -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-trophy"></i> 7. Projects & Achievements</h3>
+                    <small>Notable projects and accomplishments</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="row">
+                        <!-- Projects (Optional) -->
+                        <div class="col-12 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Key Projects <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.projects }}
+                            <div class="help-text">
+                                Describe 2-3 significant projects that demonstrate your skills and impact. 
+                                Include project scope, your role, and outcomes.
+                            </div>
+                        </div>
+                        
+                        <!-- Achievements (Optional) -->
+                        <div class="col-12 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Achievements & Awards <span class="optional-indicator">(Optional)</span>
+                            </label>
+                            {{ form.achievements }}
+                            <div class="help-text">
+                                List any awards, recognitions, or significant achievements in your career
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 8: Volunteer Work -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-heart"></i> 8. Volunteer Work & Community Involvement</h3>
+                    <small>Community engagement and volunteer activities</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="mb-3">
+                        <label class="field-label optional-field px-3 py-2 rounded">
+                            Volunteer Work <span class="optional-indicator">(Optional)</span>
+                        </label>
+                        {{ form.volunteer_work }}
+                        <div class="help-text">
+                            List volunteer positions, community involvement, or charity work. 
+                            Highlight any leadership roles or skills gained.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 9: References -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-people"></i> 9. References</h3>
+                    <small>Professional references for verification</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="row">
+                        <!-- References Choice (Required) -->
+                        <div class="col-12 mb-3">
+                            <label class="field-label required-field px-3 py-2 rounded">
+                                References Availability <span class="required-indicator">*</span>
+                            </label>
+                            {{ form.references_choice }}
+                            <div class="help-text">Choose whether to provide references now or on request</div>
+                        </div>
+                        
+                        <!-- References Details (Conditional) -->
+                        <div class="col-12 mb-3" id="referencesDetails" style="display: none;">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                References Details <span class="optional-indicator">(When provided)</span>
+                            </label>
+                            {{ form.references }}
+                            <div class="help-text">
+                                Provide 2-3 professional references. Include: Name, Title, Company, Phone, Email, 
+                                and relationship to you. Always ask permission before listing someone as a reference.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 10: AU/NZ Specific Information -->
+                <div class="section-header">
+                    <h3 class="mb-0"><i class="bi bi-globe-australia"></i> 10. AU/NZ Specific Information</h3>
+                    <small>Employment eligibility and availability details</small>
+                </div>
+                
+                <div class="section-content">
+                    <div class="au-nz-highlight mb-3">
+                        <span class="badge">AU/NZ SPECIFIC</span>
+                        <strong>Important:</strong> This information is commonly required by Australian and 
+                        New Zealand employers to assess eligibility and fit.
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Visa/Work Rights (Optional but recommended) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Visa/Work Rights <span class="optional-indicator">(Recommended)</span>
+                            </label>
+                            {{ form.visa_work_rights }}
+                            <div class="help-text">Your legal right to work in Australia/New Zealand</div>
+                        </div>
+                        
+                        <!-- Availability (Optional but recommended) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="field-label optional-field px-3 py-2 rounded">
+                                Availability <span class="optional-indicator">(Recommended)</span>
+                            </label>
+                            {{ form.availability }}
+                            <div class="help-text">When you can start a new position</div>
+                        </div>
+                        
+                        <!-- Driver's License (Optional) -->
+                        <div class="col-12 mb-3">
+                            <div class="form-check">
+                                {{ form.drivers_license }}
+                                <label class="form-check-label optional-field px-2 py-1 rounded">
+                                    I hold a valid driver's license <span class="optional-indicator">(Optional)</span>
+                                </label>
+                            </div>
+                            <div class="help-text">Relevant for roles requiring travel or company vehicle use</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Submit Section -->
+                <div class="section-content">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i> 
+                                Changes are automatically saved as you type
+                            </small>
+                        </div>
+                        <div>
+                            <a href="{% url 'jobassistant:cv_profile' profile.id %}" class="btn btn-secondary me-2">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Professional CV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- Sidebar with tips and progress -->
+            <div class="col-lg-4">
+                <div class="sticky-top" style="top: 2rem;">
+                    
+                    <!-- CV Tips -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-lightbulb"></i> AU/NZ CV Tips</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="small">
+                                <div class="mb-3">
+                                    <strong>✓ Essential for AU/NZ jobs:</strong>
+                                    <ul class="mb-0 mt-1">
+                                        <li>Clear contact details</li>
+                                        <li>2-3 page maximum length</li>
+                                        <li>Quantified achievements</li>
+                                        <li>Work eligibility status</li>
+                                        <li>Professional references</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <strong>✗ Avoid including:</strong>
+                                    <ul class="mb-0 mt-1">
+                                        <li>Personal photo (unless required)</li>
+                                        <li>Age, marital status, religion</li>
+                                        <li>Personal references</li>
+                                        <li>Salary expectations</li>
+                                    </ul>
+                                </div>
+                                
+                                <div>
+                                    <strong>💡 Pro tip:</strong> Tailor your CV for each application 
+                                    by highlighting relevant skills and experience.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section Checklist -->
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0"><i class="bi bi-list-check"></i> Section Checklist</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="small">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="check1">
+                                    <label class="form-check-label" for="check1">Personal Details</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="check2">
+                                    <label class="form-check-label" for="check2">Professional Summary</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="check3">
+                                    <label class="form-check-label" for="check3">Key Skills</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="check4">
+                                    <label class="form-check-label" for="check4">Work Experience</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="check5">
+                                    <label class="form-check-label" for="check5">Education</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="check6">
+                                    <label class="form-check-label" for="check6">References Choice</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
 
-<style>
-/* Edit Progress */
-.edit-progress-container {
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    padding: 1.5rem;
-    border: 1px solid var(--card-border);
-}
-
-.edit-progress-item {
-    cursor: pointer;
-    padding: 1rem 0;
-    transition: all 0.3s ease;
-    opacity: 0.6;
-}
-
-.edit-progress-item.active {
-    opacity: 1;
-}
-
-.edit-progress-item:hover {
-    opacity: 1;
-}
-
-.edit-progress-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: var(--bg-secondary);
-    border: 2px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 0.5rem;
-    transition: all 0.3s ease;
-}
-
-.edit-progress-item.active .edit-progress-icon {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: white;
-}
-
-.edit-progress-item span {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-.edit-progress-item.active span {
-    color: var(--primary-color);
-    font-weight: 600;
-}
-
-/* Edit Form */
-.edit-form-container {
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    border: 1px solid var(--card-border);
-}
-
-.edit-section {
-    display: none;
-    padding: 2rem;
-}
-
-.edit-section.active {
-    display: block;
-}
-
-.edit-section .card {
-    border: none;
-    box-shadow: none;
-    background-color: transparent;
-}
-
-.edit-section .card-header {
-    background-color: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-    padding: 1rem 1.5rem;
-}
-
-.edit-section .card-body {
-    padding: 1.5rem;
-}
-
-/* Form Controls */
-.form-label {
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-}
-
-.form-control,
-.form-select {
-    background-color: var(--input-bg);
-    border: 1px solid var(--input-border);
-    color: var(--text-primary);
-    transition: all 0.3s ease;
-}
-
-.form-control:focus,
-.form-select:focus {
-    background-color: var(--input-bg);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
-    color: var(--text-primary);
-}
-
-.form-text {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-}
-
-/* Action Container */
-.edit-actions-container {
-    background-color: var(--bg-secondary);
-    padding: 1.5rem 2rem;
-    border-top: 1px solid var(--border-color);
-    border-radius: 0 0 8px 8px;
-}
-
-/* Auto-save Indicator */
-.auto-save-indicator {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 0.5rem 1rem;
-    background-color: var(--success-color);
-    color: white;
-    border-radius: 4px;
-    font-size: 0.875rem;
-    z-index: 1050;
-    display: none;
-}
-
-.auto-save-indicator.show {
-    display: block;
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .edit-progress-container {
-        padding: 1rem;
-    }
-    
-    .edit-progress-icon {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .edit-section {
-        padding: 1rem;
-    }
-    
-    .edit-actions-container {
-        padding: 1rem;
-    }
-    
-    .edit-actions-container .row {
-        flex-direction: column-reverse;
-    }
-    
-    .edit-actions-container .col-md-6 {
-        margin-bottom: 1rem;
-    }
-    
-    .edit-actions-container .col-md-6:last-child {
-        margin-bottom: 0;
-    }
-}
-</style>
-
+<!-- Auto-save and validation JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const sections = ['personal', 'professional', 'experience', 'skills'];
-    let currentSection = 0;
-    let autoSaveTimeout;
-    
-    // Section Navigation
-    function showSection(index) {
-        // Hide all sections
-        document.querySelectorAll('.edit-section').forEach(section => {
-            section.classList.remove('active');
-        });
-        
-        // Remove active from all progress items
-        document.querySelectorAll('.edit-progress-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Show current section
-        document.getElementById(sections[index] + '-section').classList.add('active');
-        document.querySelector(`[data-section="${sections[index]}"]`).classList.add('active');
-        
-        // Update navigation buttons
-        document.getElementById('prev-section-btn').disabled = index === 0;
-        document.getElementById('next-section-btn').textContent = 
-            index === sections.length - 1 ? 'Finish' : 'Next ';
-        
-        if (index < sections.length - 1) {
-            document.getElementById('next-section-btn').innerHTML = 
-                'Next <i class="fas fa-arrow-right"></i>';
-        } else {
-            document.getElementById('next-section-btn').innerHTML = 
-                '<i class="fas fa-check"></i> Finish';
-        }
-    }
-    
-    // Progress item click handlers
-    document.querySelectorAll('.edit-progress-item').forEach((item, index) => {
-        item.addEventListener('click', function() {
-            currentSection = index;
-            showSection(currentSection);
-        });
-    });
-    
-    // Navigation button handlers
-    document.getElementById('prev-section-btn').addEventListener('click', function() {
-        if (currentSection > 0) {
-            currentSection--;
-            showSection(currentSection);
-        }
-    });
-    
-    document.getElementById('next-section-btn').addEventListener('click', function() {
-        if (currentSection < sections.length - 1) {
-            currentSection++;
-            showSection(currentSection);
-        } else {
-            // Finish - submit form
-            document.getElementById('cv-edit-form').submit();
-        }
-    });
     
     // Auto-save functionality
-    function showAutoSaveIndicator(message = 'Draft saved') {
-        const indicator = document.createElement('div');
-        indicator.className = 'auto-save-indicator show';
-        indicator.textContent = message;
-        document.body.appendChild(indicator);
-        
+    let saveTimeout;
+    const autoSaveIndicator = document.getElementById('autoSaveIndicator');
+    
+    function showAutoSaveIndicator() {
+        autoSaveIndicator.classList.add('show');
         setTimeout(() => {
-            indicator.remove();
-        }, 3000);
+            autoSaveIndicator.classList.remove('show');
+        }, 2000);
     }
     
     function autoSave() {
-        const formData = new FormData(document.getElementById('cv-edit-form'));
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            // Here you would implement AJAX auto-save
+            showAutoSaveIndicator();
+        }, 2000);
+    }
+    
+    // Character counting
+    const summaryField = document.querySelector('textarea[name="professional_summary"]');
+    const summaryCount = document.getElementById('summaryCount');
+    
+    if (summaryField && summaryCount) {
+        function updateSummaryCount() {
+            const count = summaryField.value.length;
+            summaryCount.textContent = count;
+            summaryCount.style.color = count > 300 ? '#dc2626' : '#6b7280';
+        }
         
-        fetch(window.location.href, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+        summaryField.addEventListener('input', updateSummaryCount);
+        updateSummaryCount();
+    }
+    
+    const experienceField = document.querySelector('textarea[name="work_experience"]');
+    const experienceCount = document.getElementById('experienceCount');
+    
+    if (experienceField && experienceCount) {
+        function updateExperienceCount() {
+            experienceCount.textContent = experienceField.value.length;
+        }
+        
+        experienceField.addEventListener('input', updateExperienceCount);
+        updateExperienceCount();
+    }
+    
+    // References conditional display
+    const referencesChoice = document.querySelector('select[name="references_choice"]');
+    const referencesDetails = document.getElementById('referencesDetails');
+    
+    if (referencesChoice && referencesDetails) {
+        function toggleReferencesDetails() {
+            if (referencesChoice.value === 'provided') {
+                referencesDetails.style.display = 'block';
+            } else {
+                referencesDetails.style.display = 'none';
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAutoSaveIndicator();
+        }
+        
+        referencesChoice.addEventListener('change', toggleReferencesDetails);
+        toggleReferencesDetails();
+    }
+    
+    // Progress tracking
+    function updateProgress() {
+        const requiredFields = [
+            'full_name', 'email', 'phone', 'city_region', 
+            'professional_summary', 'technical_skills', 'soft_skills',
+            'work_experience', 'education', 'references_choice'
+        ];
+        
+        let completed = 0;
+        requiredFields.forEach(fieldName => {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (field && field.value.trim() !== '') {
+                completed++;
             }
-        })
-        .catch(error => {
-            console.error('Auto-save error:', error);
+        });
+        
+        const percentage = Math.round((completed / requiredFields.length) * 100);
+        document.getElementById('completionProgress').style.width = percentage + '%';
+        document.getElementById('completionPercentage').textContent = percentage + '%';
+    }
+    
+    // Section checklist automation
+    function updateChecklist() {
+        const checkboxes = {
+            'check1': ['full_name', 'email', 'phone', 'city_region'],
+            'check2': ['professional_summary'],
+            'check3': ['technical_skills', 'soft_skills'],
+            'check4': ['work_experience'],
+            'check5': ['education'],
+            'check6': ['references_choice']
+        };
+        
+        Object.keys(checkboxes).forEach(checkId => {
+            const checkbox = document.getElementById(checkId);
+            const fields = checkboxes[checkId];
+            
+            const allFilled = fields.every(fieldName => {
+                const field = document.querySelector(`[name="${fieldName}"]`);
+                return field && field.value.trim() !== '';
+            });
+            
+            if (checkbox) {
+                checkbox.checked = allFilled;
+            }
         });
     }
     
-    // Auto-save on form changes
-    document.getElementById('cv-edit-form').addEventListener('input', function() {
-        clearTimeout(autoSaveTimeout);
-        autoSaveTimeout = setTimeout(autoSave, 2000); // Auto-save after 2 seconds of no input
-    });
-    
-    // Manual save button
-    document.getElementById('auto-save-btn').addEventListener('click', function() {
-        autoSave();
-    });
-    
-    // Form submission
-    document.getElementById('cv-edit-form').addEventListener('submit', function(e) {
-        // Show loading state
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        submitBtn.disabled = true;
+    // Attach listeners to all form fields
+    const formFields = document.querySelectorAll('input, textarea, select');
+    formFields.forEach(field => {
+        field.addEventListener('input', () => {
+            autoSave();
+            updateProgress();
+            updateChecklist();
+        });
         
-        // Re-enable after a delay (in case of error)
-        setTimeout(() => {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        }, 5000);
+        field.addEventListener('change', () => {
+            updateProgress();
+            updateChecklist();
+        });
     });
     
-    // Initialize
-    showSection(0);
+    // Initial progress calculation
+    updateProgress();
+    updateChecklist();
+    
+    // Form validation enhancement
+    const form = document.getElementById('cvEditForm');
+    form.addEventListener('submit', function(e) {
+        const requiredFields = form.querySelectorAll('[required]');
+        let hasErrors = false;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                hasErrors = true;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (hasErrors) {
+            e.preventDefault();
+            alert('Please fill in all required fields before saving.');
+            return false;
+        }
+    });
 });
 </script>
 {% endblock %}

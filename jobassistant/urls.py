@@ -41,6 +41,9 @@ urlpatterns = [
     path('cv/profile/<uuid:profile_id>/', cv_views.CVProfileView.as_view(), name='cv_profile'),
     path('cv/edit/<uuid:profile_id>/', cv_views.CVEditView.as_view(), name='cv_edit'),
     
+    # Test URL for debugging
+    path('cv/test/<uuid:profile_id>/', cv_views.test_cv_profile_view, name='test_cv_profile'),
+    
     # Document generation
     path('document-options/', views.document_options, name='document_options'),
     path('generate/', views.generate_documents, name='generate_documents'),

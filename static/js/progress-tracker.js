@@ -460,7 +460,9 @@ window.progressTracker = new ProgressTracker();
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    window.progressTracker.cleanup();
+    if (window.progressTracker && typeof window.progressTracker.cleanup === 'function') {
+        window.progressTracker.cleanup();
+    }
 });
 
 // Export for module usage

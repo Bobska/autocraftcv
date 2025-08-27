@@ -149,8 +149,11 @@ class CVCreationWizardView(TemplateView):
         step = self.request.GET.get('step', '1')
         context['current_step'] = int(step)
         
+        print(f"DEBUG GET: Wizard accessed - Step {step}, Method: {self.request.method}")
+        
         # Get existing profile for pre-population
         user_profile = self.get_user_profile()
+        print(f"DEBUG GET: User profile: {user_profile}")
         
         # Create appropriate form for the step
         if step == '1':
@@ -191,46 +194,75 @@ class CVCreationWizardView(TemplateView):
         step = request.GET.get('step', '1')
         current_step = int(step)
         
+        print(f"DEBUG WIZARD POST: Step {current_step}")
+        print(f"DEBUG WIZARD POST: POST data keys: {list(request.POST.keys())}")
+        
         # Get or create user profile
         user_profile = self.get_user_profile()
+        print(f"DEBUG WIZARD POST: Existing profile: {user_profile}")
+        
         if not user_profile:
             if request.user.is_authenticated:
                 user_profile = UserProfile.objects.create(user=request.user)
+                print(f"DEBUG WIZARD POST: Created profile for user: {user_profile.id}")
             else:
                 session_key = request.session.session_key
                 if not session_key:
                     request.session.create()
                     session_key = request.session.session_key
                 user_profile = UserProfile.objects.create(session_key=session_key)
+                print(f"DEBUG WIZARD POST: Created profile for session: {user_profile.id}")
+        else:
+            print(f"DEBUG WIZARD POST: Using existing profile: {user_profile.id}")
         
         # Handle different step forms
         form_valid = False
         
         if current_step == 1:
             form = PersonalInfoForm(request.POST, instance=user_profile)
+            print(f"DEBUG WIZARD: Step 1 form data: {dict(request.POST)}")
             if form.is_valid():
-                form.save()
+                saved_profile = form.save()
+                print(f"DEBUG WIZARD: Step 1 saved successfully. Profile name: {saved_profile.first_name} {saved_profile.last_name}")
                 form_valid = True
+            else:
+                print(f"DEBUG WIZARD: Step 1 form errors: {form.errors}")
         elif current_step == 2:
             form = ProfessionalProfileForm(request.POST, instance=user_profile)
+            print(f"DEBUG WIZARD: Step 2 form data: {dict(request.POST)}")
             if form.is_valid():
-                form.save()
+                saved_profile = form.save()
+                print(f"DEBUG WIZARD: Step 2 saved successfully. Summary: {saved_profile.professional_summary[:50] if saved_profile.professional_summary else 'None'}")
                 form_valid = True
+            else:
+                print(f"DEBUG WIZARD: Step 2 form errors: {form.errors}")
         elif current_step == 3:
             form = SkillsForm(request.POST, instance=user_profile)
+            print(f"DEBUG WIZARD: Step 3 form data: {dict(request.POST)}")
             if form.is_valid():
                 self._save_skills_form(form, user_profile)
+                print(f"DEBUG WIZARD: Step 3 saved successfully. Skills count after save: {user_profile.skills.count()}")
                 form_valid = True
+            else:
+                print(f"DEBUG WIZARD: Step 3 form errors: {form.errors}")
         elif current_step == 4:
             form = WorkExperienceWizardForm(request.POST, instance=user_profile)
+            print(f"DEBUG WIZARD: Step 4 form data: {dict(request.POST)}")
             if form.is_valid():
                 self._save_work_experience_form(form, user_profile)
+                print(f"DEBUG WIZARD: Step 4 saved successfully. Work exp count: {user_profile.work_experiences.count()}")
                 form_valid = True
+            else:
+                print(f"DEBUG WIZARD: Step 4 form errors: {form.errors}")
         elif current_step == 5:
             form = EducationWizardForm(request.POST, instance=user_profile)
+            print(f"DEBUG WIZARD: Step 5 form data: {dict(request.POST)}")
             if form.is_valid():
                 self._save_education_form(form, user_profile)
+                print(f"DEBUG WIZARD: Step 5 saved successfully. Education count: {user_profile.education_entries.count()}")
                 form_valid = True
+            else:
+                print(f"DEBUG WIZARD: Step 5 form errors: {form.errors}")
         else:
             form = PersonalInfoForm(request.POST, instance=user_profile)
             if form.is_valid():
@@ -348,33 +380,101 @@ class CVCreationWizardView(TemplateView):
         return profile
 
 
+def test_cv_profile_view(request, profile_id):
+    """Simple test view to debug CV profile issues"""
+    from django.http import HttpResponse
+    
+    try:
+        user_profile = UserProfile.objects.get(id=profile_id)
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Test CV Profile</title></head>
+        <body>
+            <h1>TEST CV PROFILE DEBUG</h1>
+            <p><strong>Profile ID:</strong> {user_profile.id}</p>
+            <p><strong>Full Name:</strong> "{user_profile.full_name}"</p>
+            <p><strong>First Name:</strong> "{user_profile.first_name}"</p>
+            <p><strong>Last Name:</strong> "{user_profile.last_name}"</p>
+            <p><strong>Email:</strong> "{user_profile.email}"</p>
+            <p><strong>Mobile Phone:</strong> "{user_profile.mobile_phone}"</p>
+            <p><strong>City:</strong> "{user_profile.city}"</p>
+            <p><strong>Professional Summary:</strong> "{user_profile.professional_summary}"</p>
+            <p><strong>Work Experiences:</strong> {user_profile.work_experiences.count()}</p>
+            <p><strong>Education:</strong> {user_profile.education_entries.count()}</p>
+            <p><strong>Skills:</strong> {user_profile.skills.count()}</p>
+            
+            <h2>Work Experiences</h2>
+            <ul>
+            {''.join([f'<li>{exp.job_title} at {exp.company_name}</li>' for exp in user_profile.work_experiences.all()])}
+            </ul>
+            
+            <h2>Education</h2>
+            <ul>
+            {''.join([f'<li>{edu.field_of_study} at {edu.institution_name}</li>' for edu in user_profile.education_entries.all()])}
+            </ul>
+            
+            <h2>Skills</h2>
+            <ul>
+            {''.join([f'<li>{skill.name} ({skill.category})</li>' for skill in user_profile.skills.all()])}
+            </ul>
+        </body>
+        </html>
+        """
+        
+        return HttpResponse(html)
+        
+    except Exception as e:
+        return HttpResponse(f"ERROR: {str(e)}")
+
+
 class CVProfileView(TemplateView):
     """Display CV profile with all sections"""
     template_name = 'jobassistant/cv_profile.html'
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get(self, request, *args, **kwargs):
+        """Override get method for debugging"""
+        print(f"DEBUG: CVProfileView.get() called")
+        print(f"DEBUG: kwargs = {kwargs}")
         
         profile_id = kwargs.get('profile_id')
-        user_profile = get_object_or_404(UserProfile, id=profile_id)
+        print(f"DEBUG: Looking for profile ID: {profile_id}")
         
-        # Get related data (simplified queries)
-        work_experiences = user_profile.work_experiences.all()
-        educations = user_profile.education_entries.all()
-        skills = user_profile.skills.all()
-        certifications = user_profile.certifications.all()
-        projects = user_profile.projects.all()
-        
-        context.update({
-            'profile': user_profile,
-            'work_experiences': work_experiences,
-            'educations': educations,
-            'skills': skills,
-            'certifications': certifications,
-            'projects': projects,
-        })
-        
-        return context
+        try:
+            user_profile = get_object_or_404(UserProfile, id=profile_id)
+            print(f"DEBUG: Found profile: {user_profile.full_name} ({user_profile.email})")
+            
+            # Get related data
+            work_experiences = user_profile.work_experiences.all()
+            educations = user_profile.education_entries.all()
+            skills = user_profile.skills.all()
+            certifications = user_profile.certifications.all()
+            projects = user_profile.projects.all()
+            
+            print(f"DEBUG: Work experiences: {work_experiences.count()}")
+            print(f"DEBUG: Educations: {educations.count()}")
+            print(f"DEBUG: Skills: {skills.count()}")
+            
+            context = {
+                'profile': user_profile,
+                'work_experiences': work_experiences,
+                'educations': educations,
+                'skills': skills,
+                'certifications': certifications,
+                'projects': projects,
+            }
+            
+            return render(request, self.template_name, context)
+            
+        except Exception as e:
+            print(f"DEBUG: Error in CVProfileView: {str(e)}")
+            from django.http import HttpResponse
+            return HttpResponse(f"DEBUG ERROR: {str(e)}")
+    
+    def get_context_data(self, **kwargs):
+        # This method won't be called if we override get()
+        pass
 
 
 class CVEditView(TemplateView):

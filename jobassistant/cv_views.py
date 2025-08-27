@@ -186,6 +186,155 @@ class CVCreationWizardView(TemplateView):
         
         return context
     
+    def post(self, request, *args, **kwargs):
+        """Handle form submission for wizard steps"""
+        step = request.GET.get('step', '1')
+        current_step = int(step)
+        
+        # Get or create user profile
+        user_profile = self.get_user_profile()
+        if not user_profile:
+            if request.user.is_authenticated:
+                user_profile = UserProfile.objects.create(user=request.user)
+            else:
+                session_key = request.session.session_key
+                if not session_key:
+                    request.session.create()
+                    session_key = request.session.session_key
+                user_profile = UserProfile.objects.create(session_key=session_key)
+        
+        # Handle different step forms
+        form_valid = False
+        
+        if current_step == 1:
+            form = PersonalInfoForm(request.POST, instance=user_profile)
+            if form.is_valid():
+                form.save()
+                form_valid = True
+        elif current_step == 2:
+            form = ProfessionalProfileForm(request.POST, instance=user_profile)
+            if form.is_valid():
+                form.save()
+                form_valid = True
+        elif current_step == 3:
+            form = SkillsForm(request.POST, instance=user_profile)
+            if form.is_valid():
+                self._save_skills_form(form, user_profile)
+                form_valid = True
+        elif current_step == 4:
+            form = WorkExperienceWizardForm(request.POST, instance=user_profile)
+            if form.is_valid():
+                self._save_work_experience_form(form, user_profile)
+                form_valid = True
+        elif current_step == 5:
+            form = EducationWizardForm(request.POST, instance=user_profile)
+            if form.is_valid():
+                self._save_education_form(form, user_profile)
+                form_valid = True
+        else:
+            form = PersonalInfoForm(request.POST, instance=user_profile)
+            if form.is_valid():
+                form.save()
+                form_valid = True
+        
+        # Handle step completion if form was valid
+        if form_valid:
+            return self._handle_step_completion(request, current_step, user_profile)
+        
+        # If form is invalid, redisplay with errors
+        context = self.get_context_data(**kwargs)
+        context['form'] = form
+        return render(request, self.template_name, context)
+    
+    def _handle_step_completion(self, request, current_step, user_profile):
+        """Handle what happens after a step is completed"""
+        if current_step == 5:
+            # Final step completed - mark as active and redirect to profile
+            user_profile.profile_status = 'active'
+            user_profile.save()
+            messages.success(request, 'Your CV has been created successfully!')
+            return redirect('jobassistant:cv_profile', profile_id=user_profile.id)
+        else:
+            # Move to next step
+            next_step = current_step + 1
+            return redirect(f"{request.path}?step={next_step}")
+    
+    def _save_skills_form(self, form, user_profile):
+        """Save skills form data"""
+        from datetime import datetime
+        
+        # Clear existing skills
+        user_profile.skills.all().delete()
+        
+        # Save technical skills
+        technical_skills = form.cleaned_data.get('technical_skills', '')
+        if technical_skills:
+            skills = [skill.strip() for skill in technical_skills.split(',') if skill.strip()]
+            for skill_name in skills:
+                Skill.objects.create(
+                    profile=user_profile,
+                    name=skill_name,
+                    category='technical'
+                )
+        
+        # Save soft skills
+        soft_skills = form.cleaned_data.get('soft_skills', '')
+        if soft_skills:
+            skills = [skill.strip() for skill in soft_skills.split(',') if skill.strip()]
+            for skill_name in skills:
+                Skill.objects.create(
+                    profile=user_profile,
+                    name=skill_name,
+                    category='soft'
+                )
+    
+    def _save_work_experience_form(self, form, user_profile):
+        """Save work experience form data"""
+        # Get or create the most recent work experience
+        work_exp = user_profile.work_experiences.first()
+        
+        if not work_exp:
+            work_exp = WorkExperience(profile=user_profile)
+        
+        # Update fields from form
+        work_exp.job_title = form.cleaned_data.get('job_title', '')
+        work_exp.company_name = form.cleaned_data.get('company_name', '')
+        work_exp.company_location = form.cleaned_data.get('company_location', '')
+        work_exp.employment_type = form.cleaned_data.get('employment_type', '')
+        work_exp.start_date = form.cleaned_data.get('start_date')
+        work_exp.end_date = form.cleaned_data.get('end_date')
+        work_exp.currently_working = form.cleaned_data.get('currently_working', False)
+        work_exp.key_responsibilities = form.cleaned_data.get('key_responsibilities', '')
+        work_exp.key_achievements = form.cleaned_data.get('key_achievements', '')
+        
+        # Only save if we have essential fields
+        if work_exp.job_title and work_exp.company_name:
+            work_exp.save()
+    
+    def _save_education_form(self, form, user_profile):
+        """Save education form data"""
+        from .models import Education
+        
+        # Get or create the most recent education entry
+        education = user_profile.education_entries.first()
+        
+        if not education:
+            education = Education(profile=user_profile)
+        
+        # Update fields from form
+        education.degree_type = form.cleaned_data.get('degree_type', '')
+        education.field_of_study = form.cleaned_data.get('field_of_study', '')
+        education.institution_name = form.cleaned_data.get('institution_name', '')
+        education.institution_location = form.cleaned_data.get('institution_location', '')
+        education.graduation_year = form.cleaned_data.get('graduation_year')
+        education.gpa_grade = form.cleaned_data.get('gpa_grade', '')
+        education.relevant_coursework = form.cleaned_data.get('relevant_coursework', '')
+        education.academic_achievements = form.cleaned_data.get('academic_achievements', '')
+        
+        # Only save if we have essential fields
+        if education.field_of_study and education.institution_name:
+            education.save()
+    
     def get_user_profile(self):
         """Get user profile from session or user"""
         if self.request.user.is_authenticated:

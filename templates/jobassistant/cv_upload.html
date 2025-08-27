@@ -37,8 +37,7 @@
                         {% csrf_token %}
                         
                         <!-- Drag and Drop Area -->
-                        <div class="file-upload-area text-center py-5 mb-4" 
-                             onclick="document.getElementById('cv-file-input').click()">
+                        <div class="file-upload-area text-center py-5 mb-4" id="file-drop-area">
                             <div class="upload-icon mb-3">
                                 <i class="fas fa-cloud-upload-alt fa-4x text-primary"></i>
                             </div>
@@ -220,22 +219,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const uploadForm = document.getElementById('cv-upload-form');
     const fileInput = document.getElementById('cv-file-input');
     const uploadBtn = document.getElementById('upload-btn');
-    const uploadArea = document.querySelector('.file-upload-area');
+    const uploadArea = document.getElementById('file-drop-area');
     const fileInfo = document.getElementById('file-info');
     const progressContainer = document.getElementById('upload-progress-container');
+    
+    let selectedFile = null;
+    
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    // Highlight drop area when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    // Handle dropped files
+    uploadArea.addEventListener('drop', handleDrop, false);
+    
+    // Handle click to open file dialog
+    uploadArea.addEventListener('click', function(e) {
+        // Prevent triggering file input if user clicked on remove button
+        if (e.target.closest('.btn')) {
+            return;
+        }
+        fileInput.click();
+    });
     
     // File input change handler
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
-            displayFileInfo(file);
-            uploadBtn.disabled = false;
-            uploadArea.classList.add('file-selected');
-            
-            // Show upload feedback
-            const feedback = uploadArea.querySelector('.upload-feedback');
-            feedback.textContent = `Selected: ${file.name}`;
-            feedback.style.opacity = '1';
+            handleFileSelection(file);
+        } else {
+            clearFile(); // Clear if no file selected
         }
     });
     
@@ -243,13 +266,77 @@ document.addEventListener('DOMContentLoaded', function() {
     uploadForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        if (!fileInput.files[0]) {
+        if (!selectedFile) {
             showNotification('Please select a file first', 'error');
             return;
         }
         
         uploadCV();
     });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight(e) {
+        uploadArea.classList.add('dragover');
+    }
+    
+    function unhighlight(e) {
+        uploadArea.classList.remove('dragover');
+    }
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            const file = files[0];
+            
+            // Validate file type
+            if (validateFile(file)) {
+                // Use the file directly instead of trying to set fileInput.files
+                handleFileSelection(file);
+            }
+        }
+    }
+    
+    function validateFile(file) {
+        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        const allowedExtensions = ['.pdf', '.doc', '.docx'];
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+            showNotification('Please upload a PDF or Word document (.pdf, .doc, .docx)', 'error');
+            return false;
+        }
+        
+        if (file.size > maxSize) {
+            showNotification('File size must be less than 10MB', 'error');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    function handleFileSelection(file) {
+        if (!validateFile(file)) {
+            return;
+        }
+        
+        selectedFile = file;
+        displayFileInfo(file);
+        uploadBtn.disabled = false;
+        uploadArea.classList.add('file-selected');
+        
+        // Show upload feedback
+        const feedback = uploadArea.querySelector('.upload-feedback');
+        feedback.textContent = `Selected: ${file.name}`;
+        feedback.style.opacity = '1';
+    }
     
     function displayFileInfo(file) {
         const fileName = document.getElementById('file-name');
@@ -269,6 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function clearFile() {
+        selectedFile = null;
         fileInput.value = '';
         fileInfo.classList.add('d-none');
         uploadBtn.disabled = true;
@@ -277,12 +365,23 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide upload feedback
         const feedback = uploadArea.querySelector('.upload-feedback');
         feedback.style.opacity = '0';
+        feedback.textContent = '';
     }
     
     async function uploadCV() {
+        if (!selectedFile) {
+            showNotification('Please select a file first', 'error');
+            return;
+        }
+        
         const formData = new FormData();
-        formData.append('cv_file', fileInput.files[0]);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append('cv_file', selectedFile);
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            formData.append('csrfmiddlewaretoken', csrfToken.value);
+        }
         
         // Disable form and show progress
         uploadBtn.disabled = true;
@@ -293,53 +392,98 @@ document.addEventListener('DOMContentLoaded', function() {
             // Start upload
             const response = await fetch('{% url "jobassistant:upload_cv_with_progress" %}', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             
             const data = await response.json();
             
             if (data.success) {
-                // Start progress tracking
-                window.progressTracker.track(data.task_id, {
-                    progressContainer: progressContainer.querySelector('.progress-tracker'),
-                    onComplete: function(progressData) {
-                        showNotification('CV uploaded and processed successfully!', 'success');
-                        
-                        // Redirect to profile view
-                        if (progressData.profile_url) {
+                // Check if progress tracker is available
+                if (typeof window.progressTracker !== 'undefined') {
+                    // Start progress tracking
+                    window.progressTracker.track(data.task_id, {
+                        progressContainer: progressContainer.querySelector('.progress-tracker'),
+                        endpoint: '/api/progress/' + data.task_id + '/',
+                        onSuccess: function(progressData) {
+                            showNotification('CV uploaded and processed successfully!', 'success');
+                            
+                            // Redirect to profile view or dashboard
                             setTimeout(() => {
-                                window.location.href = progressData.profile_url;
-                            }, 1000);
-                        } else {
-                            // Fallback to dashboard
-                            setTimeout(() => {
-                                window.location.href = '{% url "jobassistant:cv_dashboard" %}';
-                            }, 1000);
+                                if (progressData.profile_url) {
+                                    window.location.href = progressData.profile_url;
+                                } else if (progressData.profile_id) {
+                                    window.location.href = '/cv/profile/' + progressData.profile_id + '/';
+                                } else {
+                                    window.location.href = '{% url "jobassistant:cv_dashboard" %}';
+                                }
+                            }, 1500);
+                        },
+                        onError: function(error) {
+                            showNotification('Upload failed: ' + (error.error || 'Processing error'), 'error');
+                            resetForm();
                         }
-                    },
-                    onError: function(error) {
-                        showNotification('Upload failed: ' + (error.error || 'Unknown error'), 'error');
-                        resetForm();
-                    }
-                });
+                    });
+                } else {
+                    // Fallback if progress tracker is not available
+                    showNotification('CV uploaded successfully! Processing in background...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '{% url "jobassistant:cv_dashboard" %}';
+                    }, 2000);
+                }
             } else {
                 throw new Error(data.error || 'Upload failed');
             }
             
         } catch (error) {
+            console.error('Upload error:', error);
             showNotification('Upload failed: ' + error.message, 'error');
             resetForm();
         }
     }
     
     function resetForm() {
-        uploadBtn.disabled = false;
+        uploadBtn.disabled = selectedFile ? false : true;
         uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload and Parse CV';
         progressContainer.style.display = 'none';
     }
     
+    // Notification function (fallback if not available globally)
+    function showNotification(message, type = 'info') {
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, type);
+        } else {
+            // Simple fallback notification
+            const alertClass = type === 'error' ? 'alert-danger' : (type === 'success' ? 'alert-success' : 'alert-info');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    }
+    
     // Make clearFile available globally
     window.clearFile = clearFile;
+    
+    // Initialize
+    clearFile(); // Start with clean state
 });
 </script>
 {% endblock %}

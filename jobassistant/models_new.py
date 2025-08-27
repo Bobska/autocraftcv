@@ -68,36 +68,35 @@ class UserProfile(models.Model):
     session_key = models.CharField(max_length=40, blank=True)  # For anonymous users
     
     # Section 1: Personal Information
-    first_name = models.CharField(max_length=100, default='')
-    last_name = models.CharField(max_length=100, default='')
-    email = models.EmailField(default='')
-    mobile_phone = models.CharField(max_length=20, default='')
-    landline_phone = models.CharField(max_length=20, blank=True, default='')
-    address_line_1 = models.CharField(max_length=200, default='')
-    address_line_2 = models.CharField(max_length=200, blank=True, default='')
-    city = models.CharField(max_length=100, default='')
-    state_region = models.CharField(max_length=100, default='')
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    mobile_phone = models.CharField(max_length=20)
+    landline_phone = models.CharField(max_length=20, blank=True)
+    address_line_1 = models.CharField(max_length=200)
+    address_line_2 = models.CharField(max_length=200, blank=True)
+    city = models.CharField(max_length=100)
+    state_region = models.CharField(max_length=100)
     country = models.CharField(max_length=100, default='New Zealand')
-    postal_code = models.CharField(max_length=20, default='')
-    linkedin_url = models.URLField(blank=True, default='')
-    portfolio_url = models.URLField(blank=True, default='')
-    github_url = models.URLField(blank=True, default='')
+    postal_code = models.CharField(max_length=20)
+    linkedin_url = models.URLField(blank=True)
+    portfolio_url = models.URLField(blank=True)
+    github_url = models.URLField(blank=True)
     photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
     
     # Section 2: Professional Profile
     professional_summary = models.TextField(
-        blank=True, default='',
         help_text="2-3 sentences highlighting your key strengths and career goals"
     )
-    career_objectives = models.TextField(blank=True, default='')
-    value_proposition = models.TextField(blank=True, default='')
-    target_industry = models.CharField(max_length=50, choices=TARGET_INDUSTRIES, blank=True, default='')
+    career_objectives = models.TextField(blank=True)
+    value_proposition = models.TextField(blank=True)
+    target_industry = models.CharField(max_length=50, choices=TARGET_INDUSTRIES, blank=True)
     years_experience = models.PositiveIntegerField(default=0)
-    employment_status = models.CharField(max_length=20, choices=EMPLOYMENT_STATUS_CHOICES, blank=True, default='')
+    employment_status = models.CharField(max_length=20, choices=EMPLOYMENT_STATUS_CHOICES, blank=True)
     
     # AU/NZ Specific Information
-    visa_work_rights = models.CharField(max_length=30, choices=VISA_STATUS_CHOICES, blank=True, default='')
-    availability = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, blank=True, default='')
+    visa_work_rights = models.CharField(max_length=30, choices=VISA_STATUS_CHOICES, blank=True)
+    availability = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, blank=True)
     drivers_license = models.BooleanField(default=False)
     willing_to_relocate = models.BooleanField(default=False)
     
@@ -461,7 +460,7 @@ class JobPosting(models.Model):
 
 class ProgressTask(models.Model):
     """Model to track progress of CV parsing and generation tasks"""
-    task_id = models.CharField(max_length=36, primary_key=True)  # UUID as string
+    task_id = models.CharField(max_length=36, unique=True)  # UUID as string
     status = models.CharField(max_length=20, default='pending')  # pending, processing, completed, failed
     progress = models.IntegerField(default=0)  # 0-100
     current_step = models.CharField(max_length=100, blank=True)

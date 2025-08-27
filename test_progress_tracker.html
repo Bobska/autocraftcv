@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Progress Tracker Test</title>
+    <script src="http://127.0.0.1:8000/static/js/progress-tracker.js"></script>
+</head>
+<body>
+    <h1>Progress Tracker Test</h1>
+    <button onclick="testProgressTracker()">Test Progress Tracker</button>
+    <div id="result"></div>
+    
+    <script>
+        function testProgressTracker() {
+            const result = document.getElementById('result');
+            
+            console.log('Testing progress tracker...');
+            console.log('window.progressTracker:', window.progressTracker);
+            console.log('typeof window.progressTracker:', typeof window.progressTracker);
+            console.log('window.progressTracker.track:', window.progressTracker?.track);
+            console.log('typeof window.progressTracker.track:', typeof window.progressTracker?.track);
+            
+            if (typeof window.progressTracker !== 'undefined' && window.progressTracker.track) {
+                result.innerHTML = '<p style="color: green;">✅ Progress tracker is available and has track method!</p>';
+            } else {
+                result.innerHTML = '<p style="color: red;">❌ Progress tracker is not available or missing track method</p>';
+            }
+        }
+        
+        // Test on page load
+        window.addEventListener('load', function() {
+            console.log('Page loaded, testing progress tracker...');
+            testProgressTracker();
+        });
+    </script>
+</body>
+</html>

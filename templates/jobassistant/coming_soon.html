@@ -1,0 +1,179 @@
+{% extends 'jobassistant/base.html' %}
+{% load static %}
+
+{% block title %}{{ title|default:"AutoCraft CV - Professional CV Builder" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .coming-soon-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+    }
+    
+    .coming-soon-card {
+        background: rgba(255, 255, 255, 0.95);
+        color: #333;
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: 2rem;
+    }
+    
+    .coming-soon-icon {
+        font-size: 4rem;
+        color: #667eea;
+        margin-bottom: 1.5rem;
+    }
+    
+    .coming-soon-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .coming-soon-message {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 2rem 0;
+    }
+    
+    .feature-list li {
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .feature-list i {
+        color: #28a745;
+        margin-right: 0.5rem;
+    }
+    
+    .btn-primary-gradient {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border: none;
+        padding: 12px 30px;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary-gradient:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .progress-indicator {
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 2rem 0;
+    }
+    
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(102, 126, 234, 0.2);
+        margin-bottom: 0.5rem;
+    }
+    
+    .progress-bar {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="coming-soon-container">
+    <div class="coming-soon-card">
+        <div class="coming-soon-icon">
+            <i class="fas fa-file-alt"></i>
+        </div>
+        
+        <h1 class="coming-soon-title">{{ title|default:"Professional CV Builder" }}</h1>
+        
+        <p class="coming-soon-message">
+            {{ message|default:"We're putting the finishing touches on your new professional CV builder. Get ready for a world-class experience!" }}
+        </p>
+        
+        <div class="progress-indicator">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: 85%" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <small class="text-muted">85% Complete - Almost Ready!</small>
+        </div>
+        
+        <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Professional AU/NZ CV Templates</li>
+            <li><i class="fas fa-check"></i> Multi-Section Organization</li>
+            <li><i class="fas fa-check"></i> Dynamic Field Management</li>
+            <li><i class="fas fa-check"></i> Real-Time Preview</li>
+            <li><i class="fas fa-check"></i> Export to PDF/Word</li>
+            <li><i class="fas fa-check"></i> ATS-Optimized Formats</li>
+        </ul>
+        
+        <div class="mt-4">
+            <a href="{% url 'jobassistant:cv_dashboard' %}" class="btn btn-primary-gradient me-3">
+                <i class="fas fa-rocket me-2"></i>Try Preview
+            </a>
+            <a href="{% url 'admin:index' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-cog me-2"></i>Admin Panel
+            </a>
+        </div>
+        
+        <div class="mt-4">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Professional CV builder with world-class features coming soon!
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add some interactive animation
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate progress bar
+        const progressBar = document.querySelector('.progress-bar');
+        if (progressBar) {
+            progressBar.style.width = '0%';
+            setTimeout(() => {
+                progressBar.style.transition = 'width 2s ease-in-out';
+                progressBar.style.width = '85%';
+            }, 500);
+        }
+        
+        // Animate feature list items
+        const featureItems = document.querySelectorAll('.feature-list li');
+        featureItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(-20px)';
+            setTimeout(() => {
+                item.style.transition = 'all 0.5s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateX(0)';
+            }, 1000 + (index * 100));
+        });
+    });
+</script>
+{% endblock %}
